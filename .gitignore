@@ -1,0 +1,54 @@
+# --- Secrets: never commit anything below this block ---------------------------
+# The refresh token is the long-lived credential. Treat it like a password.
+.env
+.env.*
+!.env.example
+*.token
+*.tokens
+token.json
+tokens.json
+credentials.json
+client_secret*.json
+service-account*.json
+*.pem
+*.key
+*.p12
+secrets/
+.vault-token
+vault/data/
+vault/file/
+vault-unseal-keys*
+.sops.yaml.local
+*.decrypted
+*.age
+
+# --- Node ----------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+coverage/
+.nyc_output/
+.c8_output/
+
+# --- Runtime state -------------------------------------------------------------
+logs/
+*.log
+data/
+*.sqlite
+*.sqlite3
+*.db
+pids/
+*.pid
+
+# --- OS / editor ---------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json
