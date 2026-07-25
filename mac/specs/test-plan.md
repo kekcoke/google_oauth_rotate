@@ -18,7 +18,7 @@ faked at the HTTP boundary so error classes and retry behaviour are exercised fo
 | [spec-200](spec-200-expiry-aware-worker.md) | This option's own requirements | T-200-01 … T-200-19 |
 | [spec-001](../../specs/spec-001-token-store.md) | Owns a SQLite/Postgres store with an encrypted refresh token | T-001-01 … T-001-17 |
 | [spec-002](../../specs/spec-002-refresh-engine.md) | The refresh decision is this option's whole point | T-002-01 … T-002-19 |
-| [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect, weekly re-consent | T-003-01 … T-003-15 |
+| [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect, weekly re-consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) | Incremental authorization and per-call coverage | T-004-01 … T-004-11 |
 | [spec-005](../../specs/spec-005-api-adapters.md) | Gmail, Drive, Docs, Sheets adapters | T-005-01 … T-005-13 |
 | [spec-006](../../specs/spec-006-watch-pubsub.md) | **Polling fallback only** | T-006-11, T-006-12, T-006-13 |
@@ -85,6 +85,7 @@ option's expectations differ from the shared spec's default reading.
 | T-003-07, T-003-08 | unit | `google-consent-no-rt`, `token-partial-scopes` | — |
 | T-003-09, T-003-10 | unit | `id-token-other-sub` | Wrong-account protection matters here: one human, several signed-in accounts |
 | T-003-11 … T-003-15 | unit | `consent-desktop` | Consent runs on the host; tests exercise the module, not the browser |
+| T-003-16 | unit | `id-token-forged` | ID token verification gate. `user_id` is the store's primary key, so this is the account-takeover boundary |
 | T-004-01 … T-004-11 | unit | `token-partial-scopes` | Full registry suite |
 | T-005-01 … T-005-13 | unit | `google-api-*` | Gmail, Drive, Docs, Sheets adapters, all faked |
 | T-006-11 | integration | `google-history` | Polling fallback |
@@ -130,6 +131,7 @@ option's expectations differ from the shared spec's default reading.
 | `google-history` | `users.history.list` responses, including a `410` |
 | `google-revoke` | Revocation endpoint |
 | `id-token-other-sub` | ID token whose `sub` differs from the expected user |
+| `id-token-forged` | ID tokens with a bad signature, wrong `iss`, wrong `aud`, and an expired `exp` |
 | `config-both-modes` | Configuration enabling push and polling together |
 | `built-image-mac` | Image produced by this option's build |
 | `compose-mac` | Compose project for integration runs |

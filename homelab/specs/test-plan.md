@@ -22,7 +22,7 @@ lock TTLs and lease expiry.
 | [spec-303](spec-303-schema-and-migrations.md) — schema | T-303-01 … T-303-17 |
 | [spec-001](../../specs/spec-001-token-store.md) — token store | T-001-01 … T-001-17 |
 | [spec-002](../../specs/spec-002-refresh-engine.md) — refresh engine | T-002-01 … T-002-19 |
-| [spec-003](../../specs/spec-003-consent-flow.md) — consent | T-003-01 … T-003-15 |
+| [spec-003](../../specs/spec-003-consent-flow.md) — consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) — scopes | T-004-01 … T-004-11 |
 | [spec-005](../../specs/spec-005-api-adapters.md) — adapters | T-005-01 … T-005-13 |
 | [spec-006](../../specs/spec-006-watch-pubsub.md) — watch/push | T-006-01 … T-006-15 |
@@ -148,7 +148,8 @@ mocks. Locking bugs do not reproduce in a single process.
 | T-002-15 | integration | `two-workers` | Jitter across replicas |
 | T-002-16 | unit | `token-aged-6d` | Day-6 warning per user |
 | T-002-17 … T-002-19 | integration | `google-refresh-*` | — |
-| T-003-01 … T-003-15 | integration | `consent-web` | **Web-app** client on the HTTPS callback; `state` handling is load-bearing here in a way it is not for `mac/` |
+| T-003-01 … T-003-16 | integration | `consent-web` | **Web-app** client on the HTTPS callback; `state` handling is load-bearing here in a way it is not for `mac/` |
+| T-003-16 | unit | `id-token-forged` | ID token verification gate; with many users a forged `sub` could overwrite another account's grant |
 | T-004-01 … T-004-11 | unit | `users-mixed-scopes` | Per-user scope sets differ — the multi-user case |
 | T-005-01 … T-005-13 | integration | `google-api-*` | All calls go through the guard (T-301-09) |
 | T-006-01 … T-006-10 | integration | `pubsub-push`, `google-history` | Full push path, including OIDC verification and replay |
@@ -189,6 +190,7 @@ mocks. Locking bugs do not reproduce in a single process.
 | `google-history` | `users.history.list` responses, including `410` |
 | `google-revoke` | Revocation endpoint |
 | `consent-web` | Faked authorization endpoint plus the HTTPS callback |
+| `id-token-forged` | ID tokens with a bad signature, wrong `iss`, wrong `aud`, and an expired `exp` |
 | `pubsub-push` / `pubsub-dlq` | Push deliveries with valid, invalid and replayed OIDC tokens; dead-letter path |
 | `built-image-homelab` | Image produced by this option's build |
 | `load-generator` | Concurrent token operations during a migration |
