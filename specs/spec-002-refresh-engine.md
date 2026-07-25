@@ -27,6 +27,11 @@ retry the wrong error and you hammer Google against a dead grant.
   in-flight result rather than starting their own.
 - **injected clock** — all time comes from a supplied `now()`, never `Date.now()` inline, so
   behaviour is testable.
+- **resume threshold** — how far wall-clock elapsed time may exceed the expected interval before
+  the gap counts as a **resume event** rather than ordinary scheduling drift. Default
+  **2 minutes**, configurable. A laptop closing its lid and a paused VM both produce one; timers
+  do not fire while suspended and do not catch up afterwards, so elapsed time must be read from
+  the clock rather than inferred from tick counts.
 
 ## Requirements
 
@@ -40,7 +45,7 @@ retry the wrong error and you hammer Google against a dead grant.
 | REQ-002-06 | MUST | Classify a failed exchange per [`spec-009`](spec-009-error-taxonomy.md) and act on the class: `invalid_grant` → mark `DEAD` and stop; transient → backoff and retry; other → fail the call without retry. |
 | REQ-002-07 | MUST NOT | Retry an `invalid_grant` failure, at any level, under any backoff. |
 | REQ-002-08 | MUST | Emit a re-consent alert on transition to `DEAD`, naming the affected `user_id` and the runbook. |
-| REQ-002-09 | MUST | Re-evaluate all tokens immediately after a detected clock jump or process resume, rather than waiting for the next tick. |
+| REQ-002-09 | MUST | Re-evaluate all tokens immediately on a resume event — an elapsed gap exceeding the expected interval by more than the resume threshold — rather than waiting for the next tick. |
 | REQ-002-10 | MUST | Refuse to serve a token whose refresh failed, rather than returning a stale access token past its expiry. |
 | REQ-002-11 | MUST | Never log token material, including on the error path. |
 | REQ-002-12 | SHOULD | Apply jitter to tick timing so multiple replicas do not refresh simultaneously. |
@@ -57,6 +62,7 @@ retry the wrong error and you hammer Google against a dead grant.
  * @param {Object} deps
  * @param {() => Date}  deps.now          injected clock (REQ-002-03)
  * @param {number}      deps.skewMs       default 600000
+ * @param {number}      deps.resumeThresholdMs default 120000 (REQ-002-09)
  * @param {TokenStore}  deps.store
  * @param {OAuthClient} deps.oauth
  * @param {Locker}      deps.locker       single-flight primitive (REQ-002-04)
