@@ -78,12 +78,28 @@ expiry from the refresh token, with its own scheduled job
 
 ## 6. Quotas
 
-Note the defaults before designing polling intervals:
+Polling intervals must be derived from real figures, not guessed —
+[`spec-006`](../specs/spec-006-watch-pubsub.md) REQ-006-13 requires the floor in use to be
+recorded here, with the quota figure it comes from.
 
-- Gmail API is quota-limited per user per second as well as per project per day; reads cost
-  fewer units than mutations.
-- Token endpoint calls are cheap but not free — this is the real argument for expiry-aware
-  refresh over Option 1's unconditional 30-minute refresh.
+**Fill this table in during the implementation pass**, from Google's current quota
+documentation and the project's own quota page. It is deliberately empty: inventing these
+numbers would be worse than admitting they are unknown.
+
+| Limit | Current figure | Where checked | Date checked |
+|---|---|---|---|
+| Gmail per-user rate limit | *record it* | | |
+| Gmail per-project daily quota | *record it* | | |
+| `users.history.list` cost in quota units | *record it* | | |
+| Max simultaneously valid refresh tokens per client/user | *record it* | | |
+| **`POLL_INTERVAL_FLOOR_MS` in use** | *default 60000 until derived* | | |
+
+What is known without a figure:
+
+- Gmail is quota-limited per user per second **and** per project per day; reads cost fewer
+  units than mutations, so a polling loop and a mutation loop have different ceilings.
+- Token endpoint calls are cheap but not free — the real argument for expiry-aware refresh over
+  Option 1's unconditional 30-minute refresh.
 - There is a cap on simultaneously valid refresh tokens per OAuth client/user pair; exceeding
   it silently invalidates the oldest. Re-consenting repeatedly during development will
   eventually kill a token you thought was healthy.
@@ -98,4 +114,4 @@ Before the first `/tdd-green` pass on a consent flow:
 - [ ] Client created with the right type and exact redirect URI
 - [ ] Credentials stored per the security model, nothing committed
 - [ ] Pub/Sub topic + publisher grant + push subscription (`homelab/` only)
-- [ ] Quota figures recorded so interval choices can cite them
+- [ ] Quota table above filled in, and `POLL_INTERVAL_FLOOR_MS` derived from it (REQ-006-13)

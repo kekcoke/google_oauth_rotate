@@ -42,7 +42,7 @@ only); `simple/` implements neither. Do not expose a laptop to the internet to m
 | REQ-006-10 | MUST | Alert on absence of expected pushes over a configured interval — silence is the primary failure mode. |
 | REQ-006-11 | MUST | Provide a polling mode that advances the same stored `historyId` using `users.history.list` on an interval, for deployments without ingress. |
 | REQ-006-12 | MUST | Make push and polling mutually exclusive per user, and never process the same change through both. |
-| REQ-006-13 | MUST | Respect Gmail rate limits when polling, with the interval derived from a documented quota figure. |
+| REQ-006-13 | MUST | Reject at startup a polling interval below `POLL_INTERVAL_FLOOR_MS` (default 60000). The floor in use, and the Gmail quota figure it derives from, MUST be recorded in the quota table of [`docs/google-cloud-setup.md`](../docs/google-cloud-setup.md). |
 | REQ-006-14 | MUST | Stop attempting `watch()` for a user whose token is `DEAD`, and resume after re-consent. |
 | REQ-006-15 | SHOULD | Configure a dead-letter topic so repeated processing failures are visible rather than silently retried forever. |
 
@@ -99,7 +99,7 @@ async function syncFrom(userId) {}
 | T-006-10 | REQ-006-10 | No deliveries for longer than the configured interval raises the silence alarm. |
 | T-006-11 | REQ-006-11 | Polling mode advances the same cursor and processes the same changes as push mode. |
 | T-006-12 | REQ-006-12 | Enabling both modes for one user is rejected by configuration validation. |
-| T-006-13 | REQ-006-13 | The polling interval is not below the documented quota-derived floor. |
+| T-006-13 | REQ-006-13 | A configured interval below the floor fails startup naming both values; the default floor applies when unset; a value at or above it starts. |
 | T-006-14 | REQ-006-14 | No `watch()` attempt is made for a `DEAD` token; the attempt resumes after re-consent. |
 | T-006-15 | REQ-006-15 | Repeated failures route to the dead-letter path rather than retrying indefinitely. |
 
