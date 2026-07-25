@@ -42,7 +42,7 @@ silently receiving no refresh token, are the two common ways this goes wrong.
 | REQ-003-11 | MUST | Report the granted scope set on completion, so a partially approved consent is visible immediately. |
 | REQ-003-12 | MUST | Clear the `DEAD` state and record a re-consent timestamp on successful re-consent. |
 | REQ-003-13 | MUST NOT | Log the authorization code, the PKCE verifier, or any token material. |
-| REQ-003-14 | MUST | Use exact-match redirect URIs: loopback with an ephemeral port for `mac/`, a fixed HTTPS URL for `homelab/`. |
+| REQ-003-14 | MUST | Use the configured redirect URI verbatim, and reject a callback that does not match it: a loopback URI on a **configured fixed port** for `mac/` (default 8765), a fixed HTTPS URL for `homelab/`. An ephemeral port MUST NOT be used unless Google's current documentation has been checked to confirm it does not match the loopback port, and that check is recorded in [`docs/google-cloud-setup.md`](../docs/google-cloud-setup.md). |
 | REQ-003-15 | SHOULD | Warn when the granted scope set is narrower than requested, listing the missing scopes. |
 | REQ-003-16 | MUST | Verify the ID token before reading any claim from it: signature against Google's published keys, `iss` is a Google issuer, `aud` equals this client id, and the token is unexpired. A token failing any check MUST be rejected and MUST NOT reach the store. |
 
@@ -108,7 +108,7 @@ async function verifyIdToken(idToken) {}
 | T-003-11 | REQ-003-11 | The completion result includes the granted scope set. |
 | T-003-12 | REQ-003-12 | Re-consenting a `DEAD` record clears the state and sets a re-consent timestamp. |
 | T-003-13 | REQ-003-13 | No logger call during a full flow receives the code, the verifier, or a token value. |
-| T-003-14 | REQ-003-14 | The redirect URI matches the configured value exactly; a mismatched callback host is rejected. |
+| T-003-14 | REQ-003-14 | The authorization URL carries the configured redirect URI verbatim; callbacks on a different host, port, or path are each rejected. |
 | T-003-15 | REQ-003-15 | A narrower granted set emits a warning naming exactly the missing scopes. |
 | T-003-16 | REQ-003-16 | An ID token with a bad signature, a wrong `iss`, an `aud` for another client, or an expired `exp` is each rejected, and no record is written. |
 

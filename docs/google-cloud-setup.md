@@ -48,8 +48,13 @@ Which client type depends on the option:
 | Option | Client type | Redirect URI |
 |---|---|---|
 | `simple/` | Whatever the existing app already uses | unchanged |
-| `mac/` | **Desktop app** | `http://localhost:<port>/oauth2callback` (loopback, ephemeral port) |
+| `mac/` | **Desktop app** | `http://localhost:8765/oauth2callback` — a fixed port, matching `mac/.env.example` |
 | `homelab/` | **Web application** | `https://<your-host>/oauth2callback` — exact match, HTTPS, no wildcards |
+
+A fixed loopback port is used rather than an ephemeral one because the specs treat the
+configured redirect URI as exact (REQ-003-14). Google may in fact ignore the port for loopback
+redirects on Desktop clients — if you confirm that against current documentation, record the
+finding here with the date, and only then consider relaxing the port.
 
 Download the client credentials. Store them per [`security-model.md`](security-model.md) —
 `homelab/` puts them in Vault; the others use an uncommitted, mode-`600` env file.

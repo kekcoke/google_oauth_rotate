@@ -18,7 +18,7 @@ faked at the HTTP boundary so error classes and retry behaviour are exercised fo
 | [spec-200](spec-200-expiry-aware-worker.md) | This option's own requirements | T-200-01 … T-200-19 |
 | [spec-001](../../specs/spec-001-token-store.md) | Owns a SQLite/Postgres store with an encrypted refresh token | T-001-01 … T-001-18 |
 | [spec-002](../../specs/spec-002-refresh-engine.md) | The refresh decision is this option's whole point | T-002-01 … T-002-19 |
-| [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect, weekly re-consent | T-003-01 … T-003-16 |
+| [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, fixed-port loopback redirect, weekly re-consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) | Incremental authorization and per-call coverage | T-004-01 … T-004-11 |
 | [spec-005](../../specs/spec-005-api-adapters.md) | Gmail, Drive, Docs, Sheets adapters | T-005-01 … T-005-16 |
 | [spec-006](../../specs/spec-006-watch-pubsub.md) | **Polling fallback only** | T-006-11, T-006-12, T-006-13 |
@@ -81,7 +81,7 @@ option's expectations differ from the shared spec's default reading.
 | T-002-15 | unit | `clock-controlled` | Jitter |
 | T-002-16 | unit | `token-aged-6d` | Day-6 warning; Testing-mode only |
 | T-002-17 … T-002-19 | unit | `google-refresh-ok`, `google-refresh-no-rt` | — |
-| T-003-01 … T-003-06 | unit | `consent-desktop` | Loopback redirect on an ephemeral port |
+| T-003-01 … T-003-06 | unit | `consent-desktop` | Loopback redirect on the configured fixed port (default 8765), matching `.env.example` |
 | T-003-07, T-003-08 | unit | `google-consent-no-rt`, `token-partial-scopes` | — |
 | T-003-09, T-003-10 | unit | `id-token-other-sub` | Wrong-account protection matters here: one human, several signed-in accounts |
 | T-003-11 … T-003-15 | unit | `consent-desktop` | Consent runs on the host; tests exercise the module, not the browser |
