@@ -20,7 +20,7 @@ lock TTLs and lease expiry.
 | [spec-301](spec-301-refresh-on-demand-guard.md) — on-demand guard | T-301-01 … T-301-14 |
 | [spec-302](spec-302-vault-integration.md) — Vault | T-302-01 … T-302-16 |
 | [spec-303](spec-303-schema-and-migrations.md) — schema | T-303-01 … T-303-17 |
-| [spec-001](../../specs/spec-001-token-store.md) — token store | T-001-01 … T-001-17 |
+| [spec-001](../../specs/spec-001-token-store.md) — token store | T-001-01 … T-001-18 |
 | [spec-002](../../specs/spec-002-refresh-engine.md) — refresh engine | T-002-01 … T-002-19 |
 | [spec-003](../../specs/spec-003-consent-flow.md) — consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) — scopes | T-004-01 … T-004-11 |
@@ -139,7 +139,7 @@ mocks. Locking bugs do not reproduce in a single process.
 | T-001-09, T-001-10 | integration | `google-refresh-no-rt` | — |
 | T-001-11 … T-001-13 | integration | `token-partial-scopes`, `token-dead` | — |
 | T-001-14 | integration | `pg-real`, `vault-dev` | Same caller suite as `mac/` runs against SQLite |
-| T-001-15 … T-001-17 | integration | `vault-dev`, `store-corrupt` | An unreadable Vault entry must not break other users |
+| T-001-15 … T-001-18 | integration | `vault-dev`, `store-corrupt` | An unreadable Vault entry must not break other users |
 | T-002-01 … T-002-05 | unit | `clock-controlled` | `needsRefresh` boundary matrix |
 | T-002-06, T-002-07 | integration | `two-workers` | Single-flight is the **Redis** lock here, not in-process |
 | T-002-08 … T-002-11 | integration | `google-invalid-grant` | — |

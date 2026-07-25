@@ -16,7 +16,7 @@ faked at the HTTP boundary so error classes and retry behaviour are exercised fo
 | Spec | Applies here because | Test IDs |
 |---|---|---|
 | [spec-200](spec-200-expiry-aware-worker.md) | This option's own requirements | T-200-01 … T-200-19 |
-| [spec-001](../../specs/spec-001-token-store.md) | Owns a SQLite/Postgres store with an encrypted refresh token | T-001-01 … T-001-17 |
+| [spec-001](../../specs/spec-001-token-store.md) | Owns a SQLite/Postgres store with an encrypted refresh token | T-001-01 … T-001-18 |
 | [spec-002](../../specs/spec-002-refresh-engine.md) | The refresh decision is this option's whole point | T-002-01 … T-002-19 |
 | [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect, weekly re-consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) | Incremental authorization and per-call coverage | T-004-01 … T-004-11 |
@@ -72,7 +72,7 @@ option's expectations differ from the shared spec's default reading.
 | T-001-09, T-001-10 | unit | `google-refresh-no-rt` | The response-omits-refresh-token case |
 | T-001-11 … T-001-13 | unit | `token-partial-scopes`, `token-dead` | — |
 | T-001-14 | integration | `store-sqlite`, `store-postgres` | Same caller suite against both backends |
-| T-001-15 … T-001-17 | unit | `token-valid`, `store-corrupt` | — |
+| T-001-15 … T-001-18 | unit | `token-valid`, `store-corrupt` | — |
 | T-002-01 … T-002-05 | unit | `clock-controlled`, `token-*` | `needsRefresh` boundary matrix — the highest-value tests in this option |
 | T-002-06, T-002-07 | unit | `google-slow-token` | Single-flight is in-process here, not Redis |
 | T-002-08 … T-002-11 | unit | `token-near-expiry`, `google-invalid-grant` | — |

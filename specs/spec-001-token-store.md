@@ -46,13 +46,14 @@ warning is the requirement: *never store only the access token.*
 | REQ-001-06 | MUST | Return token material only through an accessor that requires explicit unwrapping; `toString`, `JSON.stringify` and `util.inspect` on a token object MUST yield a redaction marker, not the value. |
 | REQ-001-07 | MUST | Apply a token update atomically: a concurrent reader MUST see either the whole previous record or the whole new one, never a mix of old refresh token and new expiry. |
 | REQ-001-08 | MUST | When a refresh response omits a refresh token, retain the stored one; MUST NOT overwrite it with null or empty. |
-| REQ-001-09 | MUST | Record `granted_scopes` from the token response, replacing the stored set on full consent and merging it on incremental consent. |
+| REQ-001-09 | MUST | On full consent, replace the stored `granted_scopes` with the set from the token response, dropping any scope no longer granted. |
 | REQ-001-10 | MUST | Support marking a record `DEAD` without deleting it, preserving `user_id`, scopes and timestamps for audit. |
 | REQ-001-11 | MUST | On purge, attempt server-side revocation at Google before deleting the record, and record whether revocation succeeded. |
 | REQ-001-12 | MUST | Expose one interface for all backends so an option can change store technology without changing callers. |
 | REQ-001-13 | MUST | Report `refresh_token_issued_at` so age-based warnings (day 6 of Testing-mode expiry) are possible. |
 | REQ-001-14 | SHOULD | Provide a query for records whose `expires_at` falls before a given instant, so a sweep does not read every row. |
 | REQ-001-15 | SHOULD | Survive a corrupt or unreadable record by failing that user's operations only, not the whole worker. |
+| REQ-001-16 | MUST | On incremental consent, merge the token response's scopes into the stored set, deduplicated and order-insensitive, retaining scopes granted earlier. |
 
 ## Interface sketch
 
@@ -122,13 +123,14 @@ function reveal(secret) {}
 | T-001-08 | REQ-001-07 | A reader interleaved with an upsert observes a self-consistent record, never a mixed one. |
 | T-001-09 | REQ-001-08 | Upserting with `refreshToken` omitted leaves the stored refresh token unchanged. |
 | T-001-10 | REQ-001-08 | Upserting with an explicitly empty refresh token is rejected rather than stored. |
-| T-001-11 | REQ-001-09 | Full consent replaces the scope set; incremental consent yields the union, deduplicated. |
+| T-001-11 | REQ-001-09 | Full consent replaces the stored set with the response's, and a previously granted scope absent from the response is dropped. |
 | T-001-12 | REQ-001-10 | `markDead` preserves all identity fields and the record remains readable. |
 | T-001-13 | REQ-001-11 | `purge` calls the revocation endpoint before deleting, and reports revocation failure without silently skipping deletion semantics. |
 | T-001-14 | REQ-001-12 | The same caller-level test suite passes against every backend implementation. |
 | T-001-15 | REQ-001-13 | `refreshTokenIssuedAt` is set on consent, and unchanged by an access-token-only refresh. |
 | T-001-16 | REQ-001-14 | `listExpiringBefore` returns only records inside the window, boundary exclusive of equality as specified. |
 | T-001-17 | REQ-001-15 | One undecryptable record does not prevent reads of other users' records. |
+| T-001-18 | REQ-001-16 | Incremental consent yields the deduplicated union of stored and newly granted scopes, independent of order. |
 
 ## Out of scope
 
