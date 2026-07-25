@@ -2,11 +2,16 @@
 id: SPEC-006
 title: Gmail watch and Pub/Sub push
 status: draft
-applies_to: [homelab]
+applies_to: [homelab, mac]
 depends_on: [SPEC-002, SPEC-004, SPEC-005]
 ---
 
 # SPEC-006 — Gmail watch and Pub/Sub push
+
+> **Partial in `mac/`.** Only REQ-006-11 … REQ-006-13, the polling fallback, apply there: that
+> option has no public HTTPS ingress, so `watch()` and push are impossible. The excluded test IDs
+> are named in [`mac/specs/test-plan.md`](../mac/specs/test-plan.md) under "Not tested here".
+> `simple/` implements none of this spec and does not appear in `applies_to`.
 
 ## Purpose
 

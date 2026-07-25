@@ -106,6 +106,31 @@ jobs:
           done
           exit $fail
 
+      - name: every spec a test plan claims lists that option in applies_to
+        # The reverse of the previous check, which only walks spec -> plan. A plan that claims
+        # a spec whose applies_to omits its option is drift the forward check cannot see.
+        # Only the "Specs in scope" section counts: a spec named under "Not tested here" is an
+        # explicit exclusion, not a claim.
+        run: |
+          fail=0
+          for plan in */specs/test-plan.md; do
+            [ -e "$plan" ] || continue
+            opt="${plan%%/*}"
+            in_scope=$(awk '/^## Specs in scope/{f=1;next} /^## /{f=0} f' "$plan" \
+                       | grep -E '^\| *\[?spec-' \
+                       | grep -oE 'spec-[0-9]{3}-[a-z-]+\.md' | sort -u)
+            for spec in $in_scope; do
+              path="specs/$spec"
+              [ -e "$path" ] || path="$opt/specs/$spec"
+              [ -e "$path" ] || continue
+              if ! grep -m1 '^applies_to:' "$path" | grep -q "$opt"; then
+                echo "::error file=$path::$plan claims this spec but applies_to omits '$opt'"
+                fail=1
+              fi
+            done
+          done
+          exit $fail
+
       - name: relative links resolve
         run: |
           fail=0
