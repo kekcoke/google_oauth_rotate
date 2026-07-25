@@ -44,7 +44,7 @@ retry the wrong error and you hammer Google against a dead grant.
 | REQ-002-10 | MUST | Refuse to serve a token whose refresh failed, rather than returning a stale access token past its expiry. |
 | REQ-002-11 | MUST | Never log token material, including on the error path. |
 | REQ-002-12 | SHOULD | Apply jitter to tick timing so multiple replicas do not refresh simultaneously. |
-| REQ-002-13 | SHOULD | Warn when `refreshTokenIssuedAt` is more than 6 days old while the client is in Testing status. |
+| REQ-002-13 | SHOULD | Warn when `refreshTokenIssuedAt` is more than 6 days old and `OAUTH_PUBLISHING_STATUS` is `testing`. |
 | REQ-002-14 | SHOULD | Record refresh duration and outcome as metrics per [`spec-007`](spec-007-observability.md). |
 | REQ-002-15 | MUST | Be idempotent under duplicate invocation: two sweeps overlapping in time MUST NOT produce two exchanges for one user (follows from REQ-002-04, tested separately at the sweep level). |
 
@@ -108,7 +108,7 @@ async function sweep() {}
 | T-002-13 | REQ-002-10 | After exhausted retries, `getValidToken` throws rather than returning the stale token. |
 | T-002-14 | REQ-002-11 | No logger call during a failed refresh receives a value matching stored token material. |
 | T-002-15 | REQ-002-12 | Two engine instances with jitter enabled do not tick in lockstep across simulated ticks. |
-| T-002-16 | REQ-002-13 | A token issued 6 days ago produces an age warning; 5 days does not. |
+| T-002-16 | REQ-002-13 | With `OAUTH_PUBLISHING_STATUS=testing`, a token issued 6 days ago produces an age warning and 5 days does not; with `internal`, neither does. |
 | T-002-17 | REQ-002-14 | A successful and a failed refresh each emit the specified metric with the right outcome label. |
 | T-002-18 | REQ-002-15 | Two overlapping sweeps produce one exchange per due token. |
 | T-002-19 | REQ-002-05 | A refresh response omitting `refresh_token` updates the access token and expiry while retaining the stored refresh token (with [`spec-001`](spec-001-token-store.md)). |
