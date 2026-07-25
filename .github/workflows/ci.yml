@@ -1,0 +1,155 @@
+# The one non-Markdown artifact in this scaffolding pass: CI enforces the same gate as `/verify`.
+# Inert until the repository has a remote. Test steps are permissive while the repository is
+# specification-only, and become required in the first implementation pass — see the TODOs.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: docs and specs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # traceability checks compare against the base branch
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: markdownlint
+        run: npx --yes markdownlint-cli '**/*.md' --ignore node_modules
+
+      - name: no credential patterns tracked
+        run: |
+          if git ls-files | grep -E '\.env$|\.env\.|\.token$|credentials\.json|client_secret'; then
+            echo "::error::A credential-shaped file is tracked. See docs/security-model.md"
+            exit 1
+          fi
+          echo "clean"
+
+      - name: no secrets in the diff
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          range="${base:+$base..HEAD}"
+          if git diff ${range:-HEAD~1..HEAD} \
+             | grep -nEi 'refresh_token["'"'"']?\s*[:=]|client_secret["'"'"']?\s*[:=]|BEGIN [A-Z ]*PRIVATE KEY'; then
+            echo "::error::Possible secret in the diff. Revoke first, then clean up — docs/runbooks/incident-token-leak.md"
+            exit 1
+          fi
+          echo "clean"
+
+      - name: spec front matter is present and parseable
+        run: |
+          fail=0
+          for f in specs/spec-*.md */specs/spec-*.md; do
+            [ -e "$f" ] || continue
+            head -1 "$f" | grep -q '^---$' || { echo "::error file=$f::missing YAML front matter"; fail=1; }
+            grep -q '^id: SPEC-' "$f"      || { echo "::error file=$f::missing id"; fail=1; }
+            grep -q '^applies_to:' "$f"    || { echo "::error file=$f::missing applies_to"; fail=1; }
+            grep -q '^status:' "$f"        || { echo "::error file=$f::missing status"; fail=1; }
+            grep -q '^## Out of scope' "$f" || { echo "::error file=$f::missing Out of scope section"; fail=1; }
+          done
+          exit $fail
+
+      - name: every MUST has a test id
+        # specs/README.md rule 1. A requirement id appearing only once in its own spec is
+        # defined but never referenced by a test row. SHOULD-level requirements are exempt.
+        run: |
+          fail=0
+          for f in specs/spec-*.md */specs/spec-*.md; do
+            [ -e "$f" ] || continue
+            own=$(grep -m1 '^id: SPEC-' "$f" | sed 's/id: SPEC-//')
+            for req in $(grep -oE "REQ-$own-[0-9]{2}" "$f" | sort -u); do
+              level=$(grep -E "^\| $req \|" "$f" | awk -F'|' '{print $3}' | tr -d ' ')
+              count=$(grep -coE "$req" "$f")
+              if [ "$count" -lt 2 ] && [ "$level" != "SHOULD" ] && [ "$level" != "MAY" ]; then
+                echo "::error file=$f::$req is a $level with no test id (specs/README.md rule 1)"
+                fail=1
+              fi
+            done
+          done
+          exit $fail
+
+      - name: every test id is accounted for in each applicable test plan
+        # specs/README.md rule 3. A test id must appear in the plan of every option in
+        # `applies_to` — either as a covered row, or named in "Not tested here".
+        # An id inside a documented range ("T-002-01 … T-002-19") counts as addressed.
+        run: |
+          fail=0
+          for f in specs/spec-*.md */specs/spec-*.md; do
+            [ -e "$f" ] || continue
+            opts=$(grep -m1 '^applies_to:' "$f" | sed 's/applies_to:[[:space:]]*//; s/[][]//g; s/,/ /g')
+            for opt in $opts; do
+              plan="$opt/specs/test-plan.md"
+              if [ ! -e "$plan" ]; then
+                echo "::error file=$f::applies_to names '$opt' but $plan does not exist"
+                fail=1
+                continue
+              fi
+              for t in $(grep -oE 'T-[0-9]{3}-[0-9]{2}' "$f" | sort -u); do
+                prefix="${t%-*}"
+                if ! grep -q "$t" "$plan" \
+                   && ! grep -qE "$prefix-[0-9]{2} … $prefix-[0-9]{2}" "$plan"; then
+                  echo "::error file=$plan::$t (from $f) is neither covered nor excluded"
+                  fail=1
+                fi
+              done
+            done
+          done
+          exit $fail
+
+      - name: relative links resolve
+        run: |
+          fail=0
+          for f in $(git ls-files '*.md'); do
+            dir=$(dirname "$f")
+            for link in $(grep -oE '\]\([^)]+\)' "$f" | sed -E 's/^\]\(//; s/\)$//'); do
+              case "$link" in http*|'#'*) continue ;; esac
+              target="${link%%#*}"
+              [ -z "$target" ] && continue
+              if [ ! -e "$dir/$target" ]; then
+                echo "::error file=$f::dead link $link"
+                fail=1
+              fi
+            done
+          done
+          exit $fail
+
+  code:
+    name: lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: install
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else echo "no package.json yet"; fi
+
+      - name: eslint
+        run: |
+          if [ -f package.json ]; then npx --yes eslint . ; else echo "skipped: no code yet"; fi
+
+      - name: unit tests
+        # Unit tests must never call Google and must never sleep — see .claude/skills/tdd-workflow.
+        run: |
+          if compgen -G "tests/**/*.test.js" > /dev/null || compgen -G "*/tests/**/*.test.js" > /dev/null; then
+            node --test
+          else
+            echo "skipped: no tests yet (repository is specification-only)"
+          fi
+
+      # TODO first implementation pass: add a coverage gate (c8 --check-coverage) and an
+      # integration job with Postgres, Redis and a dev-mode Vault as services. Integration tests
+      # need Docker; keep them in a separate job so this one stays fast.
