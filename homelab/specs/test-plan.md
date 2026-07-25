@@ -24,7 +24,7 @@ lock TTLs and lease expiry.
 | [spec-002](../../specs/spec-002-refresh-engine.md) — refresh engine | T-002-01 … T-002-19 |
 | [spec-003](../../specs/spec-003-consent-flow.md) — consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) — scopes | T-004-01 … T-004-11 |
-| [spec-005](../../specs/spec-005-api-adapters.md) — adapters | T-005-01 … T-005-13 |
+| [spec-005](../../specs/spec-005-api-adapters.md) — adapters | T-005-01 … T-005-16 |
 | [spec-006](../../specs/spec-006-watch-pubsub.md) — watch/push | T-006-01 … T-006-15 |
 | [spec-007](../../specs/spec-007-observability.md) — observability | T-007-01 … T-007-14 |
 | [spec-008](../../specs/spec-008-secret-management.md) — secrets | T-008-01 … T-008-15 |
@@ -151,7 +151,7 @@ mocks. Locking bugs do not reproduce in a single process.
 | T-003-01 … T-003-16 | integration | `consent-web` | **Web-app** client on the HTTPS callback; `state` handling is load-bearing here in a way it is not for `mac/` |
 | T-003-16 | unit | `id-token-forged` | ID token verification gate; with many users a forged `sub` could overwrite another account's grant |
 | T-004-01 … T-004-11 | unit | `users-mixed-scopes` | Per-user scope sets differ — the multi-user case |
-| T-005-01 … T-005-13 | integration | `google-api-*` | All calls go through the guard (T-301-09) |
+| T-005-01 … T-005-16 | integration | `google-api-*` | All calls go through the guard (T-301-09) |
 | T-006-01 … T-006-10 | integration | `pubsub-push`, `google-history` | Full push path, including OIDC verification and replay |
 | T-006-11 … T-006-13 | integration | `google-history` | Polling retained as fallback |
 | T-006-14, T-006-15 | integration | `token-dead`, `pubsub-dlq` | — |
