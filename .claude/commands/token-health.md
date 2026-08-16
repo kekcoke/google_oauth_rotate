@@ -7,9 +7,12 @@ Report token health for: $ARGUMENTS
 
 ## If the implementation does not exist yet
 
-Say so plainly, name the spec that defines the health report
-(`specs/spec-007-observability.md`, REQ-007-04), and stop. Do not simulate output — a fabricated
-health report is worse than none.
+`simple/` and `homelab/` are still specification-only. For those, say so plainly, name the spec
+that defines the health report (`specs/spec-007-observability.md`, REQ-007-04), and stop. Do not
+simulate output — a fabricated health report is worse than none.
+
+`mac/` is under active implementation against `mac/IMPLEMENTATION.md`. Gather real data; if a
+command below fails, report the failure as the finding rather than falling back to prose.
 
 ## Gather
 
@@ -18,6 +21,25 @@ Prefer the health endpoint; fall back to the store only if it is unavailable.
 ```sh
 curl -s localhost:${HEALTH_PORT:-8080}/health | jq
 ```
+
+For `mac/`, when the endpoint does not answer, work down this ladder — each rung distinguishes a
+different fault:
+
+```sh
+docker compose -f mac/docker-compose.yml ps gmail-worker     # running? restarting? exited?
+docker compose -f mac/docker-compose.yml logs --tail=50 gmail-worker
+docker volume inspect mac_tokens                             # store present at all?
+docker run --rm -v mac_tokens:/data alpine ls -l /data        # tokens.db present, mode 600?
+```
+
+Read the last tick decision line from the logs — it carries whether a refresh happened and the
+seconds remaining until expiry, which is the whole health report in one line when the endpoint is
+down. A container in a restart loop with no `tokens.db` almost always means `TOKEN_ENC_KEY` was
+not injected: the worker is designed to fail to start rather than create an empty store, so check
+that `scripts/up.sh` was used rather than a bare `docker compose up`.
+
+Never read the store by decrypting a token to inspect it. State, expiry and scopes are all
+readable without touching the refresh token.
 
 For `homelab/`, also check the infrastructure, because a single infrastructure fault presents as
 every user failing at once:
@@ -40,7 +62,7 @@ that per-user token state is not observable from this option by design.
 | `lastSuccessfulRefresh` | Absence over more than a token lifetime is a fault even with no errors logged |
 | `grantedScopes` | Narrower than expected means a scope was declined at consent |
 | `watchExpiresInHours` | Under 48 → renewal due; null while push is expected → the watch is gone |
-| `ready` / `secrets` | Not-ready or a sealed backend explains everything else |
+| `ready` / `secrets` | Not-ready or an unavailable backend explains everything else. In `homelab/` that is a sealed Vault; in `mac/` it is a missing `TOKEN_ENC_KEY` or an unreachable store |
 
 ## Verdict
 

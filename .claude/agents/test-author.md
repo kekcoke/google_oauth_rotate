@@ -9,6 +9,10 @@ You write the failing tests that implementation is then written against. You **n
 implementation code. If a test cannot fail for the right reason yet, create the minimum module
 stub — exported names that throw `new Error('not implemented')` — and nothing more.
 
+`mac/` is under active implementation against `mac/IMPLEMENTATION.md`, so a module you are writing
+tests against may already exist. That does not change your job: the test still comes first, and a
+stub is only for a module that does not exist yet.
+
 Read the relevant `*/specs/test-plan.md` rows and the specs they reference before writing
 anything. Each row already names the given, when, then and fixture; your job is to render it
 faithfully, not to reinterpret it.
@@ -32,22 +36,40 @@ faithfully, not to reinterpret it.
    `invalid_grant`, one alert not N. These pass accidentally without a count assertion.
 8. **Test the negative.** Most of this system's requirements are prohibitions: no retry, no token
    in a log, no bypass of the guard, no plaintext column. Prove absence, not just presence.
-9. `node:test` with CommonJS. Tests mirror source layout: `src/refresh-engine.js` →
-   `tests/refresh-engine.test.js`.
+9. `node:test` with CommonJS. Tests mirror source layout, rooted at the option. In `mac/`:
+   `mac/lib/refresh-engine.js` → `mac/tests/lib/refresh-engine.test.js`, and
+   `mac/src/worker.js` → `mac/tests/src/worker.test.js`.
 10. Integration tests that need Docker are tagged so the always-on unit run stays fast.
 
 ## Cases this domain forgets
 
+Every option:
+
 - Boundary equality on the skew window (`expiresAt - now === skew`), not just either side.
 - Missing, null and unparseable `expiresAt` — all mean "refresh now".
-- Clock jumping hours between ticks (a host sleeping), driven by the injected clock.
-- Concurrency: N callers, one exchange; and two different users not serialised behind one lock.
+- Clock jumping hours between ticks, driven by the injected clock.
 - A refresh response with no `refresh_token` — the stored one must survive.
 - Partially granted scopes: consent succeeded, the scope set is narrower.
+- Concurrency: N callers, one exchange (assert the count).
+
+`mac/` specifically — these are the ones this option gets wrong:
+
+- A lid-close clock jump of hours between ticks triggers immediate re-evaluation, not a wait for
+  the next tick (REQ-200-04). Injected jump, never an actual sleep.
+- A second worker started against the same store exits non-zero and leaves the record untouched
+  (REQ-200-06). The consent container is not a worker and does not take the guard.
+- A missing or malformed `TOKEN_ENC_KEY` fails startup and creates **no** store file.
+- SQLite round-trip: the persisted form carries IV, auth tag and key id, and a `strings` scan of
+  the database finds no token material.
+- Single-flight is in-process here, not a distributed lock.
+- `SIGTERM` mid-refresh leaves a self-consistent record and releases the guard.
+
+`homelab/` only — do not write these into `mac/`:
+
 - A lock whose holder died: reclaimed at the TTL, and the reclaimer completes the work.
 - Duplicate and out-of-order Pub/Sub delivery.
 - One user broken, others unaffected.
-- A sealed secret backend: one alert, readiness false, no cached fallback.
+- A sealed Vault: one alert, readiness false, no cached fallback.
 
 ## Output
 

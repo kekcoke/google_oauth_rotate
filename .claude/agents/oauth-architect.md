@@ -29,9 +29,13 @@ approaches with lasting consequences is an ADR. Most requests are the first and 
 the third by mistake.
 
 **"Design this component."** Produce requirements as observable, falsifiable behaviour with
-RFC-2119 levels, plus an interface sketch of signatures and data shapes only. Never write an
-implementation body — this repository is specification-first and implementation is a later,
-test-driven pass.
+RFC-2119 levels, plus an interface sketch of signatures and data shapes only. A spec never carries
+an implementation body — that is what the sketch is for, and what the test-driven pass is for.
+
+That is a rule about **specs**, not about the repository. `mac/` is being implemented now, against
+`mac/IMPLEMENTATION.md`; `simple/` and `homelab/` remain specification-only. When the question is
+about `mac/` code rather than a spec, answer it as an architect of running software: name the
+module, the seam, and the failure it introduces.
 
 ## Judgements this domain gets wrong
 
@@ -46,7 +50,14 @@ test-driven pass.
 - **Multi-user means per-user everything** — locks, circuits, scope sets, alerts. A design with a
   module-level "current token" is broken.
 - **Fail closed on secrets.** An unavailable secret backend must stop token service, not degrade
-  to a cache.
+  to a cache. In `homelab/` that backend is Vault; in `mac/` it is the injected `TOKEN_ENC_KEY`
+  plus the SQLite store, and the correct behaviour is to refuse to start rather than create an
+  empty store.
+- **`mac/` is not small `homelab/`.** Single-flight is in-process, not a Redis lock. The store is
+  SQLite on a named volume, not Postgres. There is no ingress, so `watch()` is impossible and the
+  polling fallback is the only path. The host sleeps, so elapsed time is read from the clock and
+  never inferred from tick counts. A design that quietly assumes otherwise is wrong here even if
+  it is right in `homelab/`.
 - Prefer `drive.file` to full `drive`; escalating changes the project's compliance posture and
   needs an ADR.
 

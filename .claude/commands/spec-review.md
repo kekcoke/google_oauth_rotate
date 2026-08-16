@@ -1,11 +1,17 @@
 ---
-description: Review a spec for traceability, testability and domain correctness before implementation starts
+description: Review a spec for traceability, testability and domain correctness, before or alongside implementation
 argument-hint: <spec-id or path> (omit to review everything changed on this branch)
 ---
 
 Review: $ARGUMENTS
 
 If no argument is given, review every spec and test plan changed on this branch against `main`.
+
+Where the spec covers something already implemented — `mac/`, per `mac/IMPLEMENTATION.md` — also
+check it against the code. A spec that disagrees with working code is a defect in one of the two;
+say which, and never resolve it by silently rewriting the spec to describe what was built.
+A spec at `accepted` cannot be changed without an ADR, so a genuine spec defect at that status is
+a finding that names the ADR it needs.
 
 ## Mechanical checks — report each as pass or fail
 

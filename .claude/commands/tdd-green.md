@@ -24,6 +24,23 @@ Follow the `tdd-workflow` skill.
 - Node ≥18, **CommonJS**, lowercase-hyphen filenames, dependencies injected (clock, store, HTTP,
   logger) — never read directly.
 - Never log token material, including on the error path.
+
+### `mac/` targets
+
+`mac/` is a self-contained package under active implementation — see `mac/IMPLEMENTATION.md` for
+the standing decisions, which are binding.
+
+- Modules whose interface sketch lives in a **shared** spec go in `mac/lib/`; option-specific
+  process code goes in `mac/src/` (`worker.js`, `instance-guard.js`, `index.js`,
+  `consent-cli.js`). Tests mirror both: `mac/tests/lib/`, `mac/tests/src/`.
+- Store is SQLite on a named volume. Refresh tokens are envelope-encrypted (AES-256-GCM) with the
+  key id in the stored form, so rotation is possible.
+- `TOKEN_ENC_KEY` arrives as an environment variable injected by `scripts/up.sh` from the macOS
+  Keychain. The container cannot read the Keychain itself. Read it **only** through
+  `lib/config.js` — `process.env` outside that module is a lint failure.
+- Time comes from the injected clock. `Date.now()` in decision code is a lint failure, not a
+  style preference.
+- Single-flight is in-process. There is no Redis lock, no queue, no Vault, no ingress.
 - If you notice a real defect outside the current tests, note it and raise it; do not fix it
   silently in a green step.
 
@@ -31,7 +48,10 @@ Follow the `tdd-workflow` skill.
 
 1. Full suite passes, not just the new tests.
 2. Refactor for structure with the tests still green — no behaviour change.
-3. `npx eslint .` and `npx markdownlint-cli '**/*.md' --ignore node_modules` clean.
+3. `npx eslint .` and `npx markdownlint-cli '**/*.md' --ignore node_modules` clean. Run eslint
+   from the option directory; it needs the `package.json` and flat config that step 2 of
+   `mac/IMPLEMENTATION.md` creates. If they do not exist yet, that is the blocker to report —
+   do not skip the check.
 4. If anything about the spec turned out to be wrong or under-specified, say so — the spec is the
    artefact that outlives the code, and a spec that disagrees with working code is a defect.
 

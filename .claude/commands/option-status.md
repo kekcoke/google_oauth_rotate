@@ -15,6 +15,11 @@ this command is a mirror.
 2. All test plans: `*/specs/test-plan.md`. For each, the test ids present.
 3. Tests on disk, matched by the test id in each test name.
 
+Where a suite can actually run — `mac/` today — the **Passing** column is measured, not inferred:
+run `cd mac && node --test` (plus the tagged integration run when Docker is up) and count the test
+ids that report as passing. Where no suite exists, the column reads `—`, never `0/0` and never a
+number carried over from the plan.
+
 ## Report
 
 ### Per option
@@ -38,8 +43,10 @@ this command is a mirror.
 ### Next actions
 
 The two or three highest-value moves, in order. Prefer untested MUSTs on the correctness-critical
-specs — `spec-002` (refresh engine), `spec-301` (on-demand guard), `spec-009` (error taxonomy) —
-over breadth elsewhere.
+specs over breadth elsewhere. Which those are depends on the option: for `mac/` they are
+`spec-002` (refresh engine), `spec-001` (token store), `spec-009` (error taxonomy) and `spec-200`
+(the worker); for `homelab/`, `spec-301` (on-demand guard) in place of `spec-200`. Never name
+`spec-301` as a next action for `mac/` — it does not apply there.
 
 ## Honesty rules
 

@@ -9,8 +9,11 @@ access token is near expiry, refreshes **only when needed**, saves the new token
 and hands it to the API client. This repository specifies that worker at three levels of
 ambition, and carries the agent/skill/command tooling to build and maintain it.
 
-> **Status: specification-only.** There is no runtime code yet. See
-> [`CLAUDE.md`](CLAUDE.md) for how implementation passes are driven from specs.
+> **Status: no runtime code yet, and `mac/` is the option being built.** The active goal is a
+> working expiry-aware worker on Docker Desktop — see
+> [`mac/IMPLEMENTATION.md`](mac/IMPLEMENTATION.md) for the six-step path. `simple/` and
+> `homelab/` remain specification-only. [`CLAUDE.md`](CLAUDE.md) covers how implementation passes
+> are driven from specs.
 
 ## Which option do I want?
 

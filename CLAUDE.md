@@ -6,9 +6,15 @@ that build them.
 
 ## Current state
 
-**This repository is specification-only.** No runtime code exists yet, by design. Every
-implementation pass is driven by a numbered spec and its test plan. If you are asked to
-write code for something that has no spec, write the spec first (`/spec-new`).
+**No runtime code exists yet — but `mac/` is now being built.** The active goal is making
+[`mac/`](mac/) operational: a container on Docker Desktop refreshing a real Google token. Its
+six-step path, and the twelve spec contradictions it resolves along the way, are in
+[`mac/IMPLEMENTATION.md`](mac/IMPLEMENTATION.md). Read that before writing anything under `mac/`.
+
+`simple/` and `homelab/` remain specification-only.
+
+Every implementation pass is still driven by a numbered spec and its test plan. If you are asked
+to write code for something that has no spec, write the spec first (`/spec-new`).
 
 ## The option map
 
@@ -51,7 +57,10 @@ assume a token carries the scope you need. See `docs/oauth-scopes.md`.
 
 - **Filenames:** lowercase with hyphens (`refresh-engine.js`, `spec-002-refresh-engine.md`)
 - **Commits:** conventional prefixes — `feat`, `fix`, `test`, `docs`, `refactor`, `chore`
-- **Tests mirror source:** `src/refresh-engine.js` → `tests/refresh-engine.test.js`
+- **Tests mirror source, rooted at the option:** modules whose interface sketch lives in a shared
+  spec go in `<option>/lib/`, option-specific process code in `<option>/src/`. So
+  `mac/lib/refresh-engine.js` → `mac/tests/lib/refresh-engine.test.js` and `mac/src/worker.js` →
+  `mac/tests/src/worker.test.js`
 - **Requirement IDs:** `REQ-<spec>-<nn>`; test IDs `T-<spec>-<nn>`. Both are permanent —
   never renumber, mark superseded instead.
 - **Markdown:** `npx markdownlint-cli '**/*.md' --ignore node_modules` must pass
