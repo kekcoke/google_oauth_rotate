@@ -22,7 +22,8 @@ Docker Desktop on macOS, one container, one named volume.
 | `DATABASE_URL` | yes | `sqlite:///data/tokens.db` by default, or a Postgres URL |
 | `TICK_MS` | no (300000) | Evaluation interval |
 | `SKEW_MS` | no (600000) | Refresh window before expiry |
-| `HEALTH_PORT` | no (8080) | Health endpoint, bound to localhost |
+| `HEALTH_PORT` | no (8080) | Health endpoint; published as `127.0.0.1:8080` and reachable from loopback only |
+| `HEALTH_BIND_ADDR` | no (`0.0.0.0`) | Bind address **inside** the container. Binding `127.0.0.1` there makes the endpoint unreachable from the host, so the loopback restriction comes from the Compose port publish, not the bind (REQ-200-10). Set `127.0.0.1` only when running outside a container |
 
 The worker refuses to start if any required variable is missing. That is deliberate — a worker
 that starts without a key and creates an empty store looks healthy and is useless.
@@ -52,16 +53,23 @@ docker compose build
 docker compose logs -f gmail-worker         # expect "not consented"
 ```
 
-Then consent, **on the host** — the container has no browser, and the loopback redirect must land
-where the browser is:
+Then consent. The token store is a named volume, which only a container can write, so consent runs
+as a **one-shot container** on the same image and the same volume — not as a host process
+([ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md)):
 
 ```sh
-node scripts/consent.js --scopes gmail.readonly,drive.file
+./scripts/consent.sh --scopes gmail.readonly,drive.file
 ```
 
-A browser opens; approve; the helper exchanges the code and writes the record to the same volume
-the container uses. It prints the account and the granted scope set — check both. A narrower
-granted set than requested means a scope was declined.
+The wrapper reads the key from the Keychain and runs
+`docker compose run --rm --service-ports consent`, which publishes `127.0.0.1:8765` and prints an
+authorization URL. Open it; approve. The browser's callback to
+`http://localhost:8765/oauth2callback` is forwarded into the container, which exchanges the code,
+writes the encrypted record to the volume, and exits.
+
+It prints the account and the granted scope set — check both. A narrower granted set than
+requested means a scope was declined. The consent container takes no instance guard, so it is safe
+to run while the worker is up.
 
 Confirm the container picked it up rather than assuming it:
 
@@ -121,7 +129,8 @@ evaluates immediately.
 |---|---|---|
 | `InstanceHeldError` on start | A previous container still holds the guard | Confirm nothing else is running; the guard self-clears after its TTL |
 | Exits immediately, non-zero | Missing required variable, or unreachable store | Read the message; it names the cause |
-| `not consented` after running the helper | Record written to a different store than the container mounts | Compare `DATABASE_URL` in both, and the volume mount |
+| `not consented` after consenting | The consent service ran without the `tokens` volume — usually `docker compose run` invoked directly, outside `consent.sh` | Re-run `./scripts/consent.sh`; confirm the `consent` service in `docker-compose.yml` still lists `volumes: [tokens:/data]` |
+| Browser cannot reach `localhost:8765` | `--service-ports` omitted, so the consent container published nothing | Use `./scripts/consent.sh`, which passes it |
 | `redirect_uri_mismatch` | Client's registered URI differs from `GOOGLE_REDIRECT_URI` | Make them identical, including port and path |
 | `invalid_grant` | Refresh token dead — usually the 7-day Testing-mode expiry | [Re-consent](../../docs/runbooks/re-consent.md) |
 | Refreshing every tick | `expires_at` not stored, or stored as a duration | Check the store; this is REQ-001-03 failing |

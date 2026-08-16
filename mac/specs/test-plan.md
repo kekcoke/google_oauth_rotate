@@ -23,7 +23,7 @@ faked at the HTTP boundary so error classes and retry behaviour are exercised fo
 | [spec-005](../../specs/spec-005-api-adapters.md) | Gmail, Drive, Docs, Sheets adapters | T-005-01 … T-005-16 |
 | [spec-006](../../specs/spec-006-watch-pubsub.md) | **Polling fallback only** | T-006-11, T-006-12, T-006-13 |
 | [spec-007](../../specs/spec-007-observability.md) | Logs and health report | T-007-01 … T-007-14 |
-| [spec-008](../../specs/spec-008-secret-management.md) | Encrypted column, runtime-injected key | T-008-01 … T-008-08, T-008-12, T-008-15 |
+| [spec-008](../../specs/spec-008-secret-management.md) | Encrypted column, runtime-injected key | T-008-01 … T-008-08, T-008-11, T-008-12, T-008-15 |
 | [spec-009](../../specs/spec-009-error-taxonomy.md) | Classification and retry | T-009-01 … T-009-13 |
 
 ## Levels
@@ -84,7 +84,7 @@ option's expectations differ from the shared spec's default reading.
 | T-003-01 … T-003-06 | unit | `consent-desktop` | Loopback redirect on the configured fixed port (default 8765), matching `.env.example` |
 | T-003-07, T-003-08 | unit | `google-consent-no-rt`, `token-partial-scopes` | — |
 | T-003-09, T-003-10 | unit | `id-token-other-sub` | Wrong-account protection matters here: one human, several signed-in accounts |
-| T-003-11 … T-003-15 | unit | `consent-desktop` | Consent runs on the host; tests exercise the module, not the browser |
+| T-003-11 … T-003-15 | unit | `consent-desktop` | Consent runs in a one-shot container ([ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md)); these exercise the module directly, not the browser and not the container |
 | T-003-16 | unit | `id-token-forged` | ID token verification gate. `user_id` is the store's primary key, so this is the account-takeover boundary |
 | T-004-01 … T-004-11 | unit | `token-partial-scopes` | Full registry suite |
 | T-005-01 … T-005-16 | unit | `google-api-*` | Gmail, Drive, Docs, Sheets adapters, all faked |
@@ -92,9 +92,10 @@ option's expectations differ from the shared spec's default reading.
 | T-006-12 | unit | `config-both-modes` | Push is impossible here, so the exclusivity check must reject any push configuration |
 | T-006-13 | unit | `google-history` | Polling floor derived from the documented quota |
 | T-007-01 … T-007-14 | unit | `token-valid`, `store-unreachable` | T-007-09 uses `token-aged-6d`; T-007-10 uses `store-unreachable` in place of a sealed Vault |
-| T-008-01 … T-008-03 | integration | `built-image-mac` | No credential in image or repo |
+| T-008-01 … T-008-03 | integration | `built-image-mac`, `consent-container` | No credential in image or repo. One image serves both the worker and the consent service ([ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md)), so these checks cover the consent path too |
 | T-008-04 … T-008-06 | unit | `keyring-two-keys` | Envelope encryption and key rotation |
 | T-008-07, T-008-08 | unit | `env-complete` | `.env.example` completeness; file permissions |
+| T-008-11 | unit | `store-unreachable` | The secret backend here is the encrypted store plus the injected key, so "backend unavailable" is an unreachable store; a sealed Vault is `homelab/`'s instance of the same requirement |
 | T-008-12 | unit | `google-revoke` | Revoke before purge |
 | T-008-15 | integration | `built-image-mac` | Poisoned-build check |
 | T-009-01 … T-009-13 | unit | `google-*` error set | Full taxonomy; T-009-08 is not applicable (no queue) and is recorded below |
@@ -110,7 +111,7 @@ option's expectations differ from the shared spec's default reading.
 | `store-empty` | Store present, no records |
 | `store-corrupt` | One record whose ciphertext cannot be decrypted |
 | `store-unreachable` | Store path or server made unavailable |
-| `guard-stale` | Instance guard held by a dead holder, past its TTL |
+| `guard-stale` | Instance guard held by a dead holder, past its TTL (`INSTANCE_GUARD_TTL_MS`, default 900000 ms — three ticks) |
 | `token-valid` | Expiry far beyond the skew window, full scope set |
 | `token-near-expiry` | Expiry inside the skew window |
 | `token-expired` | Expiry in the past, refresh token intact |
@@ -121,6 +122,7 @@ option's expectations differ from the shared spec's default reading.
 | `env-complete` / `env-incomplete` | Full and deliberately incomplete environments |
 | `tz-non-utc` | Process `TZ` set to a non-UTC zone |
 | `consent-desktop` | Faked authorization endpoint plus loopback callback |
+| `consent-container` | The `consent` Compose profile run one-shot from the worker's own image, against the same `tokens` volume |
 | `google-refresh-ok` | Token endpoint returning a new access token and expiry |
 | `google-refresh-no-rt` | Refresh response with no `refresh_token` |
 | `google-consent-no-rt` | Consent exchange with no `refresh_token` |
@@ -153,7 +155,9 @@ log-redaction tests have something to search for.
   Covered in `homelab/`.
 - **T-006-01 … T-006-10, T-006-14, T-006-15** — `watch()` and push require ingress this option
   does not have. Covered in `homelab/`.
-- **T-008-09 … T-008-11, T-008-13, T-008-14** — Vault-specific; covered in `homelab/`.
+- **T-008-09, T-008-10, T-008-13, T-008-14** — Vault-specific; covered in `homelab/`. T-008-11 is
+  **not** excluded: spec-008's partial note names only those four as Vault-specific, so REQ-008-11
+  applies here and is covered above.
 - Docker Desktop's own availability, and host clock correctness — stated assumptions, not
   behaviours of this code.
 - Real browser consent, which is an e2e step in [`../docs/deploy.md`](../docs/deploy.md).

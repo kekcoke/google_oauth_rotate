@@ -12,6 +12,7 @@ the decision, and what it costs — not just what was chosen.
 | [0005](0005-testing-mode-refresh-token-expiry.md) | Design for 7-day refresh-token expiry as a normal condition | Accepted |
 | [0006](0006-bullmq-queue-for-multi-user.md) | BullMQ on Redis for the multi-user worker | Accepted |
 | [0007](0007-docker-compose-portable-deploy.md) | Docker Compose everywhere; Kubernetes deferred | Accepted |
+| [0008](0008-consent-as-a-one-shot-container.md) | Consent runs in a one-shot container in `mac/`, not on the macOS host | Accepted |
 
 ## Writing a new one
 

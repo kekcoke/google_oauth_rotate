@@ -1,7 +1,7 @@
 ---
 id: SPEC-008
 title: Secret management
-status: draft
+status: accepted
 applies_to: [simple, mac, homelab]
 depends_on: [SPEC-001]
 ---

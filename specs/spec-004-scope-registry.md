@@ -1,7 +1,7 @@
 ---
 id: SPEC-004
 title: Scope registry and incremental authorization
-status: draft
+status: accepted
 applies_to: [mac, homelab]
 depends_on: [SPEC-001]
 ---
@@ -41,6 +41,10 @@ call will work" is false. This component makes that failure deterministic and lo
 
 ## Interface sketch
 
+One registry, one entry shape. A registry entry is the `OperationDescriptor` of
+[`spec-005`](spec-005-api-adapters.md) REQ-005-05, so an operation declares its scopes and its
+idempotency in the same place and neither can be added without the other.
+
 ```js
 // lib/scope-registry.js
 
@@ -55,25 +59,62 @@ const SCOPES = {
   SPREADSHEETS:   'https://www.googleapis.com/auth/spreadsheets',
 };
 
-/** operation id -> required scopes (REQ-004-01) */
+/**
+ * One registry entry. Same shape as spec-005's OperationDescriptor (REQ-005-05).
+ * @typedef {Object} OperationDescriptor
+ * @property {string}   id               e.g. 'gmail.sendMessage'
+ * @property {string[]} scopes           required scopes (REQ-004-01)
+ * @property {boolean}  mutating
+ * @property {boolean}  idempotent       REQUIRED — no default; startup fails without it
+ * @property {string=}  idempotencyNote  why, when false
+ */
+
+/** operation id -> OperationDescriptor (REQ-004-01) */
 const REGISTRY = {
-  'gmail.listMessages': [SCOPES.GMAIL_READONLY],
-  'gmail.sendMessage':  [SCOPES.GMAIL_SEND],
-  'gmail.modifyLabels': [SCOPES.GMAIL_MODIFY],
-  'docs.updateDoc':     [SCOPES.DRIVE_FILE, SCOPES.DOCUMENTS],
+  'gmail.listMessages': {
+    id: 'gmail.listMessages',
+    scopes: [SCOPES.GMAIL_READONLY],
+    mutating: false,
+    idempotent: true,
+  },
+  'gmail.sendMessage': {
+    id: 'gmail.sendMessage',
+    scopes: [SCOPES.GMAIL_SEND],
+    mutating: true,
+    idempotent: false,
+    idempotencyNote: 'a second call delivers a second message',
+  },
+  'gmail.modifyLabels': {
+    id: 'gmail.modifyLabels',
+    scopes: [SCOPES.GMAIL_MODIFY],
+    mutating: true,
+    idempotent: true,
+  },
+  'docs.updateDoc': {
+    id: 'docs.updateDoc',
+    scopes: [SCOPES.DRIVE_FILE, SCOPES.DOCUMENTS],
+    mutating: true,
+    idempotent: false,
+    idempotencyNote: 'batchUpdate applies the same edits again',
+  },
   // …
 };
 
-/** @returns {{ covered: boolean, missing: string[] }} */
+/** Reads REGISTRY[operationId].scopes. @returns {{ covered: boolean, missing: string[] }} */
 function checkCoverage(operationId, grantedScopes) {}
 
-/** @throws {ScopeInsufficientError} naming missing and granted sets (REQ-004-02) */
+/** Reads `.scopes`. @throws {ScopeInsufficientError} naming missing and granted sets (REQ-004-02) */
 function assertCoverage(operationId, grantedScopes) {}
 
-/** @returns {string[]} scopes to request to unblock `operationId` (REQ-004-10) */
+/** Reads `.scopes`. @returns {string[]} scopes to request to unblock `operationId` (REQ-004-10) */
 function scopesToEscalate(operationId, grantedScopes) {}
 
-/** Startup validation (REQ-004-07, REQ-004-08). @throws {RegistryError} */
+/**
+ * Startup validation: every `.scopes` entry is in SCOPES (REQ-004-07), every adapter operation
+ * has a descriptor (REQ-004-08), and every descriptor declares `idempotent` (spec-005
+ * REQ-005-05 — no default, so an omission fails startup rather than being assumed safe).
+ * @throws {RegistryError}
+ */
 function validateRegistry(adapterOperationIds) {}
 ```
 

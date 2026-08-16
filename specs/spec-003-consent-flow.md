@@ -1,7 +1,7 @@
 ---
 id: SPEC-003
 title: Consent flow
-status: draft
+status: accepted
 applies_to: [mac, homelab]
 depends_on: [SPEC-001, SPEC-004]
 ---
