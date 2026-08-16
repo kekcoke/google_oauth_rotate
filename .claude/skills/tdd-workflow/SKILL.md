@@ -25,7 +25,8 @@ it until it fails.
 ## Harness
 
 - `node:test`, CommonJS, `node --test`; coverage via c8
-- Tests mirror source: `src/refresh-engine.js` → `tests/refresh-engine.test.js`
+- Tests mirror source, rooted at the option: `mac/lib/refresh-engine.js` →
+  `mac/tests/lib/refresh-engine.test.js`, and `mac/src/worker.js` → `mac/tests/src/worker.test.js`
 - Test names begin with the test id: `T-002-06 concurrent callers cause one exchange`
 - Integration tests (real Postgres, Redis, dev Vault) are tagged so the always-on unit run stays
   fast
