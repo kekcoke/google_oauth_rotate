@@ -51,11 +51,11 @@ it that is specific to being a long-running container on a laptop.
 | REQ-200-18 | SHOULD | Operate in UTC internally, formatting local time only for human-facing output. |
 
 > **On REQ-200-10.** It states a reachability property, not a bind address, because the two come
-> apart in a container: binding `127.0.0.1` *inside* the container makes the endpoint unreachable
-> from the host, so the literal reading is unimplementable. The worker binds `HEALTH_BIND_ADDR`
-> (default `0.0.0.0`) and the loopback restriction is enforced by publishing `127.0.0.1:<port>`.
-> A run outside a container sets `HEALTH_BIND_ADDR=127.0.0.1` and satisfies the same property
-> directly. T-200-11 probes the property from both sides rather than inspecting the bind call.
+> apart in a container: binding loopback *inside* the container makes the endpoint unreachable
+> from the host, so the literal reading is unimplementable. The bind address is therefore
+> configurable and the loopback restriction is enforced at the publish boundary — see
+> [`../docs/deploy.md`](../docs/deploy.md). T-200-11 probes the property from both sides rather
+> than inspecting the bind call.
 
 ## Interface sketch
 

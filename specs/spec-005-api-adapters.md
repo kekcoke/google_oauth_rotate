@@ -54,7 +54,9 @@ auditable intent. An adapter is the only place allowed to hold a Google API clie
 ## Interface sketch
 
 Every operation is registered with a descriptor. `idempotent` has no default, so a new operation
-cannot inherit an optimistic assumption (REQ-005-05):
+cannot inherit an optimistic assumption (REQ-005-05). The registry that holds these descriptors,
+and the `validateRegistry` call that rejects one missing an `idempotent` declaration at startup,
+live in [spec-004](spec-004-scope-registry.md):
 
 ```js
 /**
