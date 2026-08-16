@@ -28,8 +28,13 @@ jobs:
         run: npx --yes markdownlint-cli '**/*.md' --ignore node_modules
 
       - name: no credential patterns tracked
+        # `.env.example` is tracked on purpose in all three options — it lists variable names with
+        # no values (REQ-008-07). Without the exclusion the `\.env\.` branch matches it and this
+        # check fails on a clean tree.
         run: |
-          if git ls-files | grep -E '\.env$|\.env\.|\.token$|credentials\.json|client_secret'; then
+          if git ls-files \
+             | grep -E '\.env$|\.env\.|\.token$|credentials\.json|client_secret' \
+             | grep -v '\.env\.example$'; then
             echo "::error::A credential-shaped file is tracked. See docs/security-model.md"
             exit 1
           fi
