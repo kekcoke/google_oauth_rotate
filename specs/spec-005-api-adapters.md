@@ -1,12 +1,18 @@
 ---
 id: SPEC-005
 title: Google API adapters
-status: draft
+status: accepted
 applies_to: [mac, homelab]
 depends_on: [SPEC-002, SPEC-004, SPEC-009]
 ---
 
 # SPEC-005 — Google API adapters
+
+> **Partial by option.** REQ-005-16 presupposes a queue that retries automatically and applies to
+> `homelab/` only; `mac/` runs adapter work sequentially on a timer, so the condition the
+> requirement guards against cannot arise there. The excluded test ID is named in
+> [`mac/specs/test-plan.md`](../mac/specs/test-plan.md) under "Not tested here". `simple/` holds
+> no token and calls no Google API, and does not appear in `applies_to`.
 
 ## Purpose
 

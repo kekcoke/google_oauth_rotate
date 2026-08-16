@@ -1,7 +1,7 @@
 ---
 id: SPEC-006
 title: Gmail watch and Pub/Sub push
-status: draft
+status: accepted
 applies_to: [homelab, mac]
 depends_on: [SPEC-002, SPEC-004, SPEC-005]
 ---

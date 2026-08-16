@@ -17,19 +17,24 @@ macOS host
 |  |  wake detector ──clock jump──> immediate re-evaluate   |  |
 |  |                                                       |  |
 |  |  adapters: gmail | drive | docs | sheets              |  |
-|  |  health report on :8080/health                        |  |
+|  |  health report on :8080  ->  published 127.0.0.1:8080 |  |
 |  +---------------------------+---------------------------+  |
 |                              |                              |
 |                     +--------v--------+                     |
 |                     |  token store    |  named volume       |
 |                     |  SQLite/Postgres|  refresh token       |
 |                     |                 |  encrypted (AES-GCM) |
-|                     +-----------------+                     |
+|                     +--------^--------+                     |
+|                              |  writes the first record     |
+|  +---------------------------+---------------------------+  |
+|  |  consent  (same image, profile: consent, one-shot)    |  |
+|  |  :8765  ->  published 127.0.0.1:8765   [ADR 0008]     |  |
+|  +-------------------------------------------------------+  |
 +-------------------------------------------------------------+
-        ^                                    |
-        | TOKEN_ENC_KEY at `compose up`      | HTTPS
-        | (operator wrapper, e.g. Keychain)  v
-   operator shell                      Google OAuth + APIs
+        ^                       ^            |
+        | TOKEN_ENC_KEY         | browser    | HTTPS
+        | (Keychain wrapper)    | localhost  v
+   operator shell           host browser   Google OAuth + APIs
 ```
 
 ## Components
@@ -42,7 +47,7 @@ macOS host
 | Token store | SQLite or Postgres on a named volume, refresh token encrypted ([spec-001](../../specs/spec-001-token-store.md)) |
 | Adapters | Gmail, Drive, Docs, Sheets, each asserting scope coverage first ([spec-005](../../specs/spec-005-api-adapters.md)) |
 | Health report | Token state, seconds to expiry, refresh-token age ([spec-007](../../specs/spec-007-observability.md)) |
-| Consent helper | Runs on the **host**, not in the container — loopback redirect needs a browser |
+| Consent helper | A **one-shot container** on the same image and volume; the browser reaches its loopback callback through a published port ([ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md)) |
 
 ## The tick
 
@@ -90,17 +95,27 @@ sleeping a test.
 
 ## Consent, and why it straddles the boundary
 
-The client is a **desktop-app** OAuth client with a loopback redirect. The container has no
-browser and the loopback redirect must land where the browser is, so:
+The client is a **desktop-app** OAuth client with a loopback redirect. The browser runs on the
+host; the store is a named volume that only a container can write. Those two facts pull in
+opposite directions, and the resolution is to publish a port rather than to move the writer
+([ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md)):
 
-1. The operator runs the consent helper on the host.
-2. The browser completes consent and the code lands on `http://localhost:<port>/oauth2callback`.
-3. The helper exchanges the code and writes the record to the store — the same volume the
-   container uses.
-4. The container picks it up on its next tick.
+1. `scripts/consent.sh` reads `TOKEN_ENC_KEY` from the Keychain and starts the `consent` service —
+   the same image as the worker, behind a Compose profile, mounting the same `tokens` volume —
+   with `docker compose run --rm --service-ports consent`.
+2. The container prints the authorization URL and listens on `:8765`, published to the host as
+   `127.0.0.1:8765`.
+3. The browser completes consent on the host and the code lands on
+   `http://localhost:8765/oauth2callback`, which Docker forwards into the container. The redirect
+   URI is unchanged and still matches the registered one exactly (REQ-003-14).
+4. The container exchanges the code, writes the encrypted record to the volume, prints the account
+   and the granted scope set, and exits. It never takes the instance guard, so it can run while
+   the worker is up.
+5. The worker picks the record up on its next tick.
 
-Verify step 4 rather than assuming it. A token written to the wrong path looks identical to a
-token that was never written.
+Verify step 5 rather than assuming it — check `/health`, not just the consent helper's own output.
+What this design removes is the failure it used to be verifying against: with one image, one
+`DATABASE_URL` and one volume, there is no longer a second store for the record to land in.
 
 ## Failure modes
 

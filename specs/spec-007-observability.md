@@ -1,7 +1,7 @@
 ---
 id: SPEC-007
 title: Observability
-status: draft
+status: accepted
 applies_to: [simple, mac, homelab]
 depends_on: [SPEC-001]
 ---

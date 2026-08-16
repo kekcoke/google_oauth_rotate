@@ -1,7 +1,7 @@
 ---
 id: SPEC-200
 title: Expiry-aware worker (macOS / Docker Desktop)
-status: draft
+status: accepted
 applies_to: [mac]
 depends_on: [SPEC-001, SPEC-002, SPEC-003, SPEC-007, SPEC-008, SPEC-009]
 ---
@@ -21,7 +21,11 @@ it that is specific to being a long-running container on a laptop.
 - **Resume event** — as defined in [spec-002](../../specs/spec-002-refresh-engine.md): an elapsed
   gap exceeding the expected interval by more than the **resume threshold** (default 2 minutes).
   Defined there, not here, because `homelab/` needs the same notion for a paused VM.
-- **Single-instance guard** — the mechanism preventing two workers from operating one store.
+- **Single-instance guard** — the mechanism preventing two **workers** from operating one store.
+  It guards workers, not the store. Only a worker acquires it; the one-shot consent container of
+  [ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md) is not a worker, does not
+  acquire it, and may legitimately run while a worker holds it. Concurrency between the two
+  processes is serialised by the store's transaction semantics (REQ-001-07), not by this guard.
 
 ## Requirements
 
@@ -36,7 +40,7 @@ it that is specific to being a long-running container on a laptop.
 | REQ-200-07 | MUST | Fail to start when a required secret or the store is unavailable, rather than starting a degraded worker or creating an empty store. |
 | REQ-200-08 | MUST | Shut down gracefully on `SIGTERM`: finish or abandon an in-flight refresh without leaving a partially written record, release the instance guard, exit 0. |
 | REQ-200-09 | MUST | Persist all state to the mounted volume; MUST NOT keep authoritative state in memory only. |
-| REQ-200-10 | MUST | Expose the health report of [spec-007](../../specs/spec-007-observability.md) over HTTP on a configurable port, bound to localhost only. |
+| REQ-200-10 | MUST | Expose the health report of [spec-007](../../specs/spec-007-observability.md) over HTTP on a configurable port, reachable from the host's loopback interface only and from no other network interface. |
 | REQ-200-11 | MUST | Log one decision line per tick, including whether a refresh was performed and the seconds remaining until expiry. |
 | REQ-200-12 | MUST | Treat an absent token record as a reportable state (not consented), not an error loop. |
 | REQ-200-13 | MUST NOT | Retry a `DEAD` token on subsequent ticks; alert at most once per configured interval instead. |
@@ -45,6 +49,13 @@ it that is specific to being a long-running container on a laptop.
 | REQ-200-16 | SHOULD | Jitter tick timing so behaviour is not synchronised with any other scheduled work. |
 | REQ-200-17 | SHOULD | Keep idle resource use negligible — an idle tick does no I/O beyond one store read and one log line. |
 | REQ-200-18 | SHOULD | Operate in UTC internally, formatting local time only for human-facing output. |
+
+> **On REQ-200-10.** It states a reachability property, not a bind address, because the two come
+> apart in a container: binding `127.0.0.1` *inside* the container makes the endpoint unreachable
+> from the host, so the literal reading is unimplementable. The worker binds `HEALTH_BIND_ADDR`
+> (default `0.0.0.0`) and the loopback restriction is enforced by publishing `127.0.0.1:<port>`.
+> A run outside a container sets `HEALTH_BIND_ADDR=127.0.0.1` and satisfies the same property
+> directly. T-200-11 probes the property from both sides rather than inspecting the bind call.
 
 ## Interface sketch
 
@@ -104,7 +115,7 @@ async function release() {}
 | T-200-08 | REQ-200-07 | Missing key, unreachable store, and missing volume each prevent start-up; no store file is created. |
 | T-200-09 | REQ-200-08 | `SIGTERM` during a refresh yields a self-consistent record, a released guard, and exit 0. |
 | T-200-10 | REQ-200-09 | Restarting the worker preserves state and does not re-refresh a still-valid token. |
-| T-200-11 | REQ-200-10 | The health endpoint serves the specified fields and binds to localhost only. |
+| T-200-11 | REQ-200-10 | The health endpoint serves the specified fields on loopback, and another interface refuses the connection. |
 | T-200-12 | REQ-200-11 | Every tick emits one decision line with the refresh flag and seconds remaining. |
 | T-200-13 | REQ-200-12 | With no record, the worker reports "not consented" and keeps ticking without error. |
 | T-200-14 | REQ-200-13 | A `DEAD` record produces no exchange attempts across many ticks, and at most one alert per interval. |
@@ -117,7 +128,9 @@ async function release() {}
 ## Out of scope
 
 - The refresh decision and the exchange itself — [spec-002](../../specs/spec-002-refresh-engine.md).
-- The consent flow, which runs on the host — [spec-003](../../specs/spec-003-consent-flow.md) and
+- The consent flow, which runs as a separate one-shot container from this option's own image and
+  takes no instance guard — [spec-003](../../specs/spec-003-consent-flow.md),
+  [ADR 0008](../../docs/adr/0008-consent-as-a-one-shot-container.md) and
   [`../docs/deploy.md`](../docs/deploy.md).
 - Gmail push notifications; unavailable without ingress.
 - Multi-user scheduling, queues and distributed locking — [`../../homelab/`](../../homelab/).

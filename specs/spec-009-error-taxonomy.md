@@ -1,7 +1,7 @@
 ---
 id: SPEC-009
 title: Error taxonomy and retry policy
-status: draft
+status: accepted
 applies_to: [simple, mac, homelab]
 depends_on: []
 ---

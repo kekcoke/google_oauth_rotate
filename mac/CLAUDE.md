@@ -60,9 +60,16 @@ Test plan: [`specs/test-plan.md`](specs/test-plan.md).
 - **This container cannot reach the macOS Keychain.** If the Keychain holds the encryption key,
   the operator's start wrapper reads it and passes it in at `compose up`. Documented seam, not
   an accident — see [`docs/deploy.md`](docs/deploy.md).
+- **Consent runs in a one-shot container**, never on the host. A macOS process cannot write a
+  Docker named volume, so the `consent` Compose profile runs the same image against the same
+  volume and the browser reaches it through a published port
+  ([ADR 0008](../docs/adr/0008-consent-as-a-one-shot-container.md)).
 - **No token material in logs**, including on error paths and including truncated prefixes.
-- **One instance only.** Two workers on one store double-refresh; guard it (REQ-200-06).
+- **One instance only.** Two workers on one store double-refresh; guard it (REQ-200-06). The
+  guard is on workers, not on the store — the consent container does not take it.
 - Store state on a **named volume**, never in the container filesystem.
+- **The health endpoint is loopback-only** (REQ-200-10). Bind `0.0.0.0` *inside* the container and
+  publish `127.0.0.1:8080:8080`; binding loopback in-container makes it unreachable from the host.
 - Tests never call Google. The token endpoint is faked at the HTTP boundary.
 
 ## Verify a change

@@ -1,7 +1,7 @@
 ---
 id: SPEC-001
 title: Token store
-status: draft
+status: accepted
 applies_to: [mac, homelab]
 depends_on: []
 ---
