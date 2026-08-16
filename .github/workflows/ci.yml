@@ -42,12 +42,17 @@ jobs:
 
       - name: no secrets in the diff
         # Two exclusions, both for the same reason: a variable NAME declared with no value is not
-        # a secret. `.env.example` is required to list every variable (REQ-008-07), so
-        # `GOOGLE_CLIENT_SECRET=` is the spec being satisfied, not a leak. Hence the path
+        # a secret. `.env.example` is required to list every variable (REQ-008-07), so an empty
+        # client-secret declaration there is the spec being satisfied, not a leak. Hence the path
         # exclusion, and the trailing `{6,}` that requires an actual value after the separator.
-        # Validated against known-bad lines (`client_secret=GOCSPX-…`, `"refresh_token": "1//…"`,
-        # a PEM header) and known-good ones (an empty declaration, prose naming the token,
-        # the `client_secret*.json` gitignore pattern).
+        #
+        # Validated both directions before it landed: it still catches a secret or refresh token
+        # assigned a real value in env, JSON or spaced form, and a PEM private-key header; it no
+        # longer matches an empty declaration, prose naming a token, or a gitignore glob.
+        #
+        # Do not paste a literal example of a matching line into this comment. The scanner reads
+        # the whole diff, including this file, and an illustrative example is indistinguishable
+        # from the real thing — which is the check working correctly.
         run: |
           base="${{ github.event.pull_request.base.sha }}"
           range="${base:+$base..HEAD}"
