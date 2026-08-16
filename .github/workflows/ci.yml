@@ -41,11 +41,18 @@ jobs:
           echo "clean"
 
       - name: no secrets in the diff
+        # Two exclusions, both for the same reason: a variable NAME declared with no value is not
+        # a secret. `.env.example` is required to list every variable (REQ-008-07), so
+        # `GOOGLE_CLIENT_SECRET=` is the spec being satisfied, not a leak. Hence the path
+        # exclusion, and the trailing `{6,}` that requires an actual value after the separator.
+        # Validated against known-bad lines (`client_secret=GOCSPX-…`, `"refresh_token": "1//…"`,
+        # a PEM header) and known-good ones (an empty declaration, prose naming the token,
+        # the `client_secret*.json` gitignore pattern).
         run: |
           base="${{ github.event.pull_request.base.sha }}"
           range="${base:+$base..HEAD}"
-          if git diff ${range:-HEAD~1..HEAD} \
-             | grep -nEi 'refresh_token["'"'"']?\s*[:=]|client_secret["'"'"']?\s*[:=]|BEGIN [A-Z ]*PRIVATE KEY'; then
+          if git diff ${range:-HEAD~1..HEAD} -- . ':(exclude)*/.env.example' \
+             | grep -nEi 'refresh_token["'"'"']?\s*[:=]\s*["'"'"']?[A-Za-z0-9_/+.-]{6,}|client_secret["'"'"']?\s*[:=]\s*["'"'"']?[A-Za-z0-9_/+.-]{6,}|BEGIN [A-Z ]*PRIVATE KEY'; then
             echo "::error::Possible secret in the diff. Revoke first, then clean up — docs/runbooks/incident-token-leak.md"
             exit 1
           fi
