@@ -20,8 +20,10 @@ Steps:
    account cannot be switched to Internal later without moving it.
 3. Set the consent screen's user type to Internal.
 4. Re-consent once. Existing Testing-mode tokens are not migrated.
-5. Delete the day-6 re-consent reminder from the maintenance schedule and record the change
-   in an ADR.
+5. Set `OAUTH_PUBLISHING_STATUS=internal`, which turns off the day-6 age alerts
+   (REQ-002-13, REQ-007-08). Then delete the re-consent reminder from the maintenance schedule
+   and record the change in an ADR — the flag silences the alerts, but the scheduled job is dead
+   weight and should go.
 
 **This is the recommended exit** where a Workspace domain is available, because it removes
 the 7-day problem in an afternoon rather than a quarter. It is unavailable to consumer

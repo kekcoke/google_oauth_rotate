@@ -33,7 +33,7 @@ every 5 minutes:
 | [spec-200](specs/spec-200-expiry-aware-worker.md) | This option's own requirements: the tick, sleep/wake, single-instance |
 | [spec-001](../specs/spec-001-token-store.md) | SQLite or Postgres on a named volume, encrypted refresh token |
 | [spec-002](../specs/spec-002-refresh-engine.md) | The refresh decision — the heart of this option |
-| [spec-003](../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect |
+| [spec-003](../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect on a fixed configured port |
 | [spec-004](../specs/spec-004-scope-registry.md) | Incremental authorization, per-call coverage check |
 | [spec-005](../specs/spec-005-api-adapters.md) | Gmail, Drive, Docs, Sheets adapters |
 | [spec-006](../specs/spec-006-watch-pubsub.md) | Polling fallback only (REQ-006-11 … REQ-006-13) |

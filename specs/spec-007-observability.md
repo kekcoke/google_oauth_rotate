@@ -42,7 +42,7 @@ The hardest constraint here is negative. Everything interesting to log is next t
 | REQ-007-05 | MUST | Distinguish liveness from readiness: a worker that cannot reach its store or secret backend MUST report not-ready even though the process is alive. |
 | REQ-007-06 | MUST | Alert on `invalid_grant`, naming the user and linking [`re-consent.md`](../docs/runbooks/re-consent.md). |
 | REQ-007-07 | MUST | Alert on **absence** of a successful refresh within a configured window, not only on explicit failures. |
-| REQ-007-08 | MUST | Alert when refresh-token age exceeds 6 days while the OAuth client is in Testing status. |
+| REQ-007-08 | MUST | Alert when refresh-token age exceeds 6 days and `OAUTH_PUBLISHING_STATUS` is `testing`; MUST NOT alert on age when it is `production` or `internal`. |
 | REQ-007-09 | MUST | Alert when the secret backend is unavailable (a sealed Vault fails every user at once, and must be identifiable as one infrastructure event, not N token events). |
 | REQ-007-10 | MUST | Include a correlation identifier on all events belonging to one refresh or one API operation. |
 | REQ-007-11 | MUST | Default to a log level that does not require raising verbosity to diagnose a refresh failure — the useful fields are present at info. |
@@ -98,7 +98,7 @@ async function healthReport() {}
 | T-007-06 | REQ-007-05 | With the store unreachable, liveness is true and readiness false. |
 | T-007-07 | REQ-007-06 | An `invalid_grant` alert names the user and links the runbook. |
 | T-007-08 | REQ-007-07 | Simulated time passing the window with no successful refresh raises the absence alarm. |
-| T-007-09 | REQ-007-08 | Age of 6 days warns; 5 days does not. |
+| T-007-09 | REQ-007-08 | With `OAUTH_PUBLISHING_STATUS=testing`, age of 6 days alerts and 5 days does not; with `production` or `internal`, neither does. |
 | T-007-10 | REQ-007-09 | A sealed secret backend raises one infrastructure alert rather than one alert per user. |
 | T-007-11 | REQ-007-10 | All events from one refresh share a correlation id; two concurrent refreshes do not. |
 | T-007-12 | REQ-007-11 | A refresh failure's cause is present in default-level output. |

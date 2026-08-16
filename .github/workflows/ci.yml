@@ -28,19 +28,36 @@ jobs:
         run: npx --yes markdownlint-cli '**/*.md' --ignore node_modules
 
       - name: no credential patterns tracked
+        # `.env.example` is tracked on purpose in all three options — it lists variable names with
+        # no values (REQ-008-07). Without the exclusion the `\.env\.` branch matches it and this
+        # check fails on a clean tree.
         run: |
-          if git ls-files | grep -E '\.env$|\.env\.|\.token$|credentials\.json|client_secret'; then
+          if git ls-files \
+             | grep -E '\.env$|\.env\.|\.token$|credentials\.json|client_secret' \
+             | grep -v '\.env\.example$'; then
             echo "::error::A credential-shaped file is tracked. See docs/security-model.md"
             exit 1
           fi
           echo "clean"
 
       - name: no secrets in the diff
+        # Two exclusions, both for the same reason: a variable NAME declared with no value is not
+        # a secret. `.env.example` is required to list every variable (REQ-008-07), so an empty
+        # client-secret declaration there is the spec being satisfied, not a leak. Hence the path
+        # exclusion, and the trailing `{6,}` that requires an actual value after the separator.
+        #
+        # Validated both directions before it landed: it still catches a secret or refresh token
+        # assigned a real value in env, JSON or spaced form, and a PEM private-key header; it no
+        # longer matches an empty declaration, prose naming a token, or a gitignore glob.
+        #
+        # Do not paste a literal example of a matching line into this comment. The scanner reads
+        # the whole diff, including this file, and an illustrative example is indistinguishable
+        # from the real thing — which is the check working correctly.
         run: |
           base="${{ github.event.pull_request.base.sha }}"
           range="${base:+$base..HEAD}"
-          if git diff ${range:-HEAD~1..HEAD} \
-             | grep -nEi 'refresh_token["'"'"']?\s*[:=]|client_secret["'"'"']?\s*[:=]|BEGIN [A-Z ]*PRIVATE KEY'; then
+          if git diff ${range:-HEAD~1..HEAD} -- . ':(exclude)*/.env.example' \
+             | grep -nEi 'refresh_token["'"'"']?\s*[:=]\s*["'"'"']?[A-Za-z0-9_/+.-]{6,}|client_secret["'"'"']?\s*[:=]\s*["'"'"']?[A-Za-z0-9_/+.-]{6,}|BEGIN [A-Z ]*PRIVATE KEY'; then
             echo "::error::Possible secret in the diff. Revoke first, then clean up — docs/runbooks/incident-token-leak.md"
             exit 1
           fi
@@ -102,6 +119,31 @@ jobs:
                   fail=1
                 fi
               done
+            done
+          done
+          exit $fail
+
+      - name: every spec a test plan claims lists that option in applies_to
+        # The reverse of the previous check, which only walks spec -> plan. A plan that claims
+        # a spec whose applies_to omits its option is drift the forward check cannot see.
+        # Only the "Specs in scope" section counts: a spec named under "Not tested here" is an
+        # explicit exclusion, not a claim.
+        run: |
+          fail=0
+          for plan in */specs/test-plan.md; do
+            [ -e "$plan" ] || continue
+            opt="${plan%%/*}"
+            in_scope=$(awk '/^## Specs in scope/{f=1;next} /^## /{f=0} f' "$plan" \
+                       | grep -E '^\| *\[?spec-' \
+                       | grep -oE 'spec-[0-9]{3}-[a-z-]+\.md' | sort -u)
+            for spec in $in_scope; do
+              path="specs/$spec"
+              [ -e "$path" ] || path="$opt/specs/$spec"
+              [ -e "$path" ] || continue
+              if ! grep -m1 '^applies_to:' "$path" | grep -q "$opt"; then
+                echo "::error file=$path::$plan claims this spec but applies_to omits '$opt'"
+                fail=1
+              fi
             done
           done
           exit $fail

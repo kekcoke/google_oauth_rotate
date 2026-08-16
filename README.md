@@ -35,6 +35,20 @@ secret management, and horizontal room to grow. Read
 6. [`specs/`](specs/) — the shared, numbered requirements each option implements
 7. [`docs/orchestration-loop.md`](docs/orchestration-loop.md) — the build and maintenance loops
 
+## Learning
+
+The documents above are normative — they say what must be true. These teach the reasoning behind
+them, and link out rather than restating it.
+
+| Document | What it teaches |
+|---|---|
+| [`docs/architecture-decisions.md`](docs/architecture-decisions.md) | Why three setups exist, what each trades away, and when *not* to use each one |
+| [`docs/agentic-orchestration.md`](docs/agentic-orchestration.md) | The eight agentic patterns this project runs on, mapped to real files |
+| [`docs/prompts/`](docs/prompts/) | Those patterns as portable, copy-paste prompt modules for any project |
+| [`docs/article/`](docs/article/) | A reference-grade case study of the patterns, written for readers outside this project |
+
+Each carries decision matrices, anti-patterns, a worked walkthrough and self-check questions.
+
 ## Read this before you build anything
 
 The OAuth client is in **Testing** publishing status, so **Google expires refresh tokens

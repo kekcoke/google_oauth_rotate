@@ -16,11 +16,11 @@ faked at the HTTP boundary so error classes and retry behaviour are exercised fo
 | Spec | Applies here because | Test IDs |
 |---|---|---|
 | [spec-200](spec-200-expiry-aware-worker.md) | This option's own requirements | T-200-01 … T-200-19 |
-| [spec-001](../../specs/spec-001-token-store.md) | Owns a SQLite/Postgres store with an encrypted refresh token | T-001-01 … T-001-17 |
+| [spec-001](../../specs/spec-001-token-store.md) | Owns a SQLite/Postgres store with an encrypted refresh token | T-001-01 … T-001-18 |
 | [spec-002](../../specs/spec-002-refresh-engine.md) | The refresh decision is this option's whole point | T-002-01 … T-002-19 |
-| [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, loopback redirect, weekly re-consent | T-003-01 … T-003-15 |
+| [spec-003](../../specs/spec-003-consent-flow.md) | Desktop-app client, fixed-port loopback redirect, weekly re-consent | T-003-01 … T-003-16 |
 | [spec-004](../../specs/spec-004-scope-registry.md) | Incremental authorization and per-call coverage | T-004-01 … T-004-11 |
-| [spec-005](../../specs/spec-005-api-adapters.md) | Gmail, Drive, Docs, Sheets adapters | T-005-01 … T-005-13 |
+| [spec-005](../../specs/spec-005-api-adapters.md) | Gmail, Drive, Docs, Sheets adapters | T-005-01 … T-005-16 |
 | [spec-006](../../specs/spec-006-watch-pubsub.md) | **Polling fallback only** | T-006-11, T-006-12, T-006-13 |
 | [spec-007](../../specs/spec-007-observability.md) | Logs and health report | T-007-01 … T-007-14 |
 | [spec-008](../../specs/spec-008-secret-management.md) | Encrypted column, runtime-injected key | T-008-01 … T-008-08, T-008-12, T-008-15 |
@@ -72,7 +72,7 @@ option's expectations differ from the shared spec's default reading.
 | T-001-09, T-001-10 | unit | `google-refresh-no-rt` | The response-omits-refresh-token case |
 | T-001-11 … T-001-13 | unit | `token-partial-scopes`, `token-dead` | — |
 | T-001-14 | integration | `store-sqlite`, `store-postgres` | Same caller suite against both backends |
-| T-001-15 … T-001-17 | unit | `token-valid`, `store-corrupt` | — |
+| T-001-15 … T-001-18 | unit | `token-valid`, `store-corrupt` | — |
 | T-002-01 … T-002-05 | unit | `clock-controlled`, `token-*` | `needsRefresh` boundary matrix — the highest-value tests in this option |
 | T-002-06, T-002-07 | unit | `google-slow-token` | Single-flight is in-process here, not Redis |
 | T-002-08 … T-002-11 | unit | `token-near-expiry`, `google-invalid-grant` | — |
@@ -81,12 +81,13 @@ option's expectations differ from the shared spec's default reading.
 | T-002-15 | unit | `clock-controlled` | Jitter |
 | T-002-16 | unit | `token-aged-6d` | Day-6 warning; Testing-mode only |
 | T-002-17 … T-002-19 | unit | `google-refresh-ok`, `google-refresh-no-rt` | — |
-| T-003-01 … T-003-06 | unit | `consent-desktop` | Loopback redirect on an ephemeral port |
+| T-003-01 … T-003-06 | unit | `consent-desktop` | Loopback redirect on the configured fixed port (default 8765), matching `.env.example` |
 | T-003-07, T-003-08 | unit | `google-consent-no-rt`, `token-partial-scopes` | — |
 | T-003-09, T-003-10 | unit | `id-token-other-sub` | Wrong-account protection matters here: one human, several signed-in accounts |
 | T-003-11 … T-003-15 | unit | `consent-desktop` | Consent runs on the host; tests exercise the module, not the browser |
+| T-003-16 | unit | `id-token-forged` | ID token verification gate. `user_id` is the store's primary key, so this is the account-takeover boundary |
 | T-004-01 … T-004-11 | unit | `token-partial-scopes` | Full registry suite |
-| T-005-01 … T-005-13 | unit | `google-api-*` | Gmail, Drive, Docs, Sheets adapters, all faked |
+| T-005-01 … T-005-16 | unit | `google-api-*` | Gmail, Drive, Docs, Sheets adapters, all faked |
 | T-006-11 | integration | `google-history` | Polling fallback |
 | T-006-12 | unit | `config-both-modes` | Push is impossible here, so the exclusivity check must reject any push configuration |
 | T-006-13 | unit | `google-history` | Polling floor derived from the documented quota |
@@ -130,6 +131,7 @@ option's expectations differ from the shared spec's default reading.
 | `google-history` | `users.history.list` responses, including a `410` |
 | `google-revoke` | Revocation endpoint |
 | `id-token-other-sub` | ID token whose `sub` differs from the expected user |
+| `id-token-forged` | ID tokens with a bad signature, wrong `iss`, wrong `aud`, and an expired `exp` |
 | `config-both-modes` | Configuration enabling push and polling together |
 | `built-image-mac` | Image produced by this option's build |
 | `compose-mac` | Compose project for integration runs |
@@ -147,6 +149,8 @@ log-redaction tests have something to search for.
 
 - **T-009-08** (class preserved through queue retries) — there is no queue in this option. It is
   covered in [`../../homelab/specs/test-plan.md`](../../homelab/specs/test-plan.md).
+- **T-005-16** (non-idempotent operation on an auto-retrying queue) — same reason: no queue here.
+  Covered in `homelab/`.
 - **T-006-01 … T-006-10, T-006-14, T-006-15** — `watch()` and push require ingress this option
   does not have. Covered in `homelab/`.
 - **T-008-09 … T-008-11, T-008-13, T-008-14** — Vault-specific; covered in `homelab/`.

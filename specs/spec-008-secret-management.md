@@ -79,6 +79,9 @@ Required environment variables, documented in `.env.example`:
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
+OAUTH_PUBLISHING_STATUS=  # testing | production | internal — drives the 7-day
+                          # refresh-token expiry warnings (REQ-002-13, REQ-007-08).
+                          # Not a secret, but required: the code cannot discover it.
 TOKEN_ENC_KEY=            # simple/, mac/ — 32 bytes, base64
 TOKEN_ENC_KEY_ID=         # identifies the key in stored ciphertext
 DATABASE_URL=

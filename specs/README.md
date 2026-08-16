@@ -14,7 +14,7 @@ test plan.
 | [spec-003](spec-003-consent-flow.md) | Consent flow | mac, homelab |
 | [spec-004](spec-004-scope-registry.md) | Scope registry and incremental authorization | mac, homelab |
 | [spec-005](spec-005-api-adapters.md) | Google API adapters | mac, homelab |
-| [spec-006](spec-006-watch-pubsub.md) | Gmail watch and Pub/Sub | homelab (polling fallback: mac) |
+| [spec-006](spec-006-watch-pubsub.md) | Gmail watch and Pub/Sub | homelab; mac (polling fallback only) |
 | [spec-007](spec-007-observability.md) | Observability | all |
 | [spec-008](spec-008-secret-management.md) | Secret management | all |
 | [spec-009](spec-009-error-taxonomy.md) | Error taxonomy and retry | all |

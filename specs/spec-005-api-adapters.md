@@ -32,7 +32,7 @@ auditable intent. An adapter is the only place allowed to hold a Google API clie
 | REQ-005-02 | MUST | Assert scope coverage via [`spec-004`](spec-004-scope-registry.md) before the request. |
 | REQ-005-03 | MUST | Route every failure through the error taxonomy in [`spec-009`](spec-009-error-taxonomy.md); MUST NOT expose a raw Google error to callers. |
 | REQ-005-04 | MUST | Support `dryRun` on every mutating operation, returning a description of the intended change and performing none. |
-| REQ-005-05 | MUST | Be idempotent, or documented as not idempotent with the reason, for every operation invoked by a retryable job. |
+| REQ-005-05 | MUST | Declare each operation's idempotency explicitly in its registry entry. The declaration MUST NOT default to idempotent, and an operation with no declaration MUST fail startup. |
 | REQ-005-06 | MUST | Require an explicit, non-default argument to perform a destructive operation (permanent delete, permission removal); a caller MUST NOT be able to destroy data by omitting a flag. |
 | REQ-005-07 | MUST | Handle pagination completely, or expose the page token to the caller; MUST NOT silently return a first page as if it were the whole result. |
 | REQ-005-08 | MUST | Log operation, `user_id`, outcome and duration — never message bodies, file contents, or token material. |
@@ -40,9 +40,26 @@ auditable intent. An adapter is the only place allowed to hold a Google API clie
 | REQ-005-10 | MUST | Register every operation in the scope registry, enforced at startup (REQ-004-08). |
 | REQ-005-11 | SHOULD | Prefer `drive.file`-compatible calls, so the default Drive scope suffices. |
 | REQ-005-12 | SHOULD | Batch where the API supports it, to stay inside per-user rate limits. |
-| REQ-005-13 | MUST | Treat Gmail message and Drive file content as user data: not written to logs, not persisted outside its intended destination, redacted in error reports. |
+| REQ-005-13 | MUST NOT | Write Gmail message content or Drive file content to a log, or include it in an error's message, properties, or serialised form. |
+| REQ-005-14 | MUST | Produce exactly one net effect when an operation declared idempotent under REQ-005-05 is invoked twice with the same input. |
+| REQ-005-15 | MUST NOT | Persist Gmail message content or Drive file content anywhere other than the destination the invoked operation names — no scratch files, no queue payloads, no cache. |
+| REQ-005-16 | MUST NOT | Enqueue an operation declared non-idempotent on a queue that retries automatically, without an explicit deduplication key. |
 
 ## Interface sketch
+
+Every operation is registered with a descriptor. `idempotent` has no default, so a new operation
+cannot inherit an optimistic assumption (REQ-005-05):
+
+```js
+/**
+ * @typedef {Object} OperationDescriptor
+ * @property {string}   id            e.g. 'gmail.sendMessage'
+ * @property {string[]} scopes        required scopes (spec-004)
+ * @property {boolean}  mutating
+ * @property {boolean}  idempotent    REQUIRED — no default; startup fails without it
+ * @property {string=}  idempotencyNote  why, when false
+ */
+```
 
 ```js
 // lib/adapters/gmail.js
@@ -77,6 +94,8 @@ credentials directly.
 - [ ] No adapter holds a token between calls — verified by inspection and by a test that changes
       the token between two calls.
 - [ ] Every mutating operation supports `dryRun` and is covered by a dry-run test.
+- [ ] Adding an operation without an idempotency declaration breaks startup — the declaration
+      cannot be forgotten, and cannot be satisfied by writing a sentence somewhere.
 - [ ] A permanent delete cannot be triggered without the explicit confirmation argument.
 - [ ] A faked `429` produces a taxonomy-classified transient error, not a raw Google error.
 - [ ] A two-page list result returns both pages, or exposes the page token.
@@ -90,7 +109,7 @@ credentials directly.
 | T-005-02 | REQ-005-02 | An operation with insufficient scope throws before any HTTP request is made. |
 | T-005-03 | REQ-005-03 | Faked Google errors (`401`, `403`, `429`, `500`, network reset) each surface as their taxonomy class. |
 | T-005-04 | REQ-005-04 | Every mutating operation with `dryRun: true` returns a change description and issues no mutating request. |
-| T-005-05 | REQ-005-05 | Invoking a retryable operation twice with the same input produces one net effect, or the operation is documented non-idempotent. |
+| T-005-05 | REQ-005-05 | Every registered operation carries an explicit idempotency declaration; adding one without a declaration fails startup, and the field has no default. |
 | T-005-06 | REQ-005-06 | `deleteMessage` without `confirmPermanent` throws; with it, the request is issued. |
 | T-005-07 | REQ-005-07 | A faked two-page response yields all items, or a `nextPageToken` the caller must follow. |
 | T-005-08 | REQ-005-08 | Logs contain operation, user and outcome, and no body, content, or token material. |
@@ -98,7 +117,10 @@ credentials directly.
 | T-005-10 | REQ-005-10 | Every exported operation appears in the scope registry. |
 | T-005-11 | REQ-005-11 | Drive operations succeed with only `drive.file` granted, for the app's own files. |
 | T-005-12 | REQ-005-12 | A batched call path issues one request where the API supports batching. |
-| T-005-13 | REQ-005-13 | An error thrown mid-operation does not carry message body or file content in its message or properties. |
+| T-005-13 | REQ-005-13 | Neither the captured logs nor an error thrown mid-operation contain message body or file content, in any property or serialised form. |
+| T-005-14 | REQ-005-14 | Table-driven over every operation declared idempotent: invoking it twice with one input yields one net effect. |
+| T-005-15 | REQ-005-15 | After an operation completes, no scratch file, queue payload, or cache entry contains message or file content. |
+| T-005-16 | REQ-005-16 | Enqueuing a non-idempotent operation on an auto-retrying queue without a deduplication key is rejected. |
 
 ## Out of scope
 

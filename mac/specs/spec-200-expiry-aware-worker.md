@@ -18,8 +18,9 @@ it that is specific to being a long-running container on a laptop.
 ## Definitions
 
 - **Tick** — one scheduled evaluation pass. Default interval **5 minutes**.
-- **Resume event** — wall-clock elapsed time between ticks exceeding the expected interval by
-  more than the resume threshold (default 2 minutes), indicating the host slept.
+- **Resume event** — as defined in [spec-002](../../specs/spec-002-refresh-engine.md): an elapsed
+  gap exceeding the expected interval by more than the **resume threshold** (default 2 minutes).
+  Defined there, not here, because `homelab/` needs the same notion for a paused VM.
 - **Single-instance guard** — the mechanism preventing two workers from operating one store.
 
 ## Requirements
